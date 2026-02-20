@@ -30,6 +30,6 @@
     "node": ">=14.0.0"
   },
   "dependencies": {
-    "cli-menu-kit": "^1.0.0"
+    "cli-menu-kit": "file:../../cli-menu-kit"
   }
 }
