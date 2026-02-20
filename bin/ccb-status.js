@@ -99,18 +99,30 @@ async function main() {
               }
 
               if (cleanupAction === 'c. Cleanup All' && detection && detection.zombies.length > 0) {
-                console.log('\n  Cleaning up zombie processes...');
-                let cleaned = 0;
-                for (const zombie of detection.zombies) {
-                  try {
-                    process.kill(zombie.pid, 'SIGTERM');
-                    console.log(`  ✓ Killed PID ${zombie.pid}`);
-                    cleaned++;
-                  } catch (e) {
-                    console.log(`  ✗ Failed to kill PID ${zombie.pid}: ${e.message}`);
+                console.log('\n  Cleaning up zombie processes...\n');
+
+                // Call ccb-cleanup to kill zombie daemons
+                const { execSync } = require('child_process');
+                const pids = detection.zombies.map(z => z.pid).join(' ');
+
+                try {
+                  // Use ccb-cleanup to kill each zombie PID
+                  for (const zombie of detection.zombies) {
+                    try {
+                      execSync(`ccb-cleanup --kill-pid ${zombie.pid}`, {
+                        encoding: 'utf8',
+                        stdio: 'pipe'
+                      });
+                      console.log(`  ✓ Killed PID ${zombie.pid}`);
+                    } catch (e) {
+                      console.log(`  ✗ Failed to kill PID ${zombie.pid}`);
+                    }
                   }
+                  console.log(`\n  Cleanup complete\n`);
+                } catch (e) {
+                  console.log(`\n  ✗ Cleanup failed: ${e.message}\n`);
                 }
-                console.log(`\n  Cleaned up ${cleaned}/${detection.zombies.length} zombie process(es).\n`);
+
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
                 // Re-detect after cleanup
