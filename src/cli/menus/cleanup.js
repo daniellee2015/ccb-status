@@ -86,7 +86,7 @@ async function showCleanup(lastDetection = null) {
         options: !lastDetection
           ? ['d. Detect Status', 'b. Back']
           : lastDetection.zombies.length > 0
-            ? ['d. Re-detect', 'c. Cleanup All', 'b. Back']
+            ? ['d. Re-detect', 'c. Cleanup All', 'r. Restart Zombie', 'b. Back']
             : ['d. Re-detect', 'b. Back'],
         allowLetterKeys: true,
         preserveOnSelect: true

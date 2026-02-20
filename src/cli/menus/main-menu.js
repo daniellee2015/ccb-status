@@ -31,7 +31,8 @@ async function showMainMenu() {
           '2. View Instance History',
           '3. Refresh Status',
           '4. Zombie Detection',
-          '5. Exit'
+          '5. Tmux Window Management',
+          '6. Exit'
         ],
         allowNumberKeys: true,
         allowLetterKeys: false

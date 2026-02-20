@@ -11,6 +11,7 @@ const { showInstanceDetails } = require('../src/cli/menus/instance-details');
 const { showHistory } = require('../src/cli/menus/history');
 const { showZombieDetection } = require('../src/cli/menus/zombie-detection');
 const { showCleanup, detectStatus } = require('../src/cli/menus/cleanup');
+const { showTmuxManagement, getTmuxSessions } = require('../src/cli/menus/tmux-management');
 const { showInfo, showSuccess, showWarning } = require('cli-menu-kit');
 const { startSpinner, stopSpinner } = require('../src/utils/spinner');
 
@@ -132,12 +133,165 @@ async function main() {
                 console.log('');
                 await new Promise(resolve => setTimeout(resolve, 500));
               }
+
+              if (cleanupAction === 'r. Restart Zombie' && detection && detection.zombies.length > 0) {
+                // Prompt for zombie selection
+                const readline = require('readline');
+                const rl = readline.createInterface({
+                  input: process.stdin,
+                  output: process.stdout
+                });
+
+                await new Promise((resolve) => {
+                  rl.question('\n  Enter zombie number to restart (or press Enter to cancel): ', async (answer) => {
+                    rl.close();
+                    if (answer.trim()) {
+                      const zombieNum = parseInt(answer.trim());
+                      if (zombieNum > 0 && zombieNum <= detection.zombies.length) {
+                        const zombie = detection.zombies[zombieNum - 1];
+                        console.log(`\n  Restarting zombie PID ${zombie.pid}...`);
+
+                        // Kill the zombie
+                        try {
+                          execSync(`ccb-cleanup --kill-pid ${zombie.pid}`, {
+                            encoding: 'utf8',
+                            stdio: 'pipe'
+                          });
+                          console.log(`  ✓ Killed PID ${zombie.pid}`);
+
+                          // Show restart instructions
+                          console.log(`\n  To restart the daemon, run:`);
+                          console.log(`  \x1b[36mcd ${zombie.workDir}\x1b[0m`);
+                          console.log(`  \x1b[36mccb <provider>\x1b[0m`);
+                          console.log(`\n  Note: Replace <provider> with the appropriate provider (claude/gemini/codex/opencode)\n`);
+                        } catch (e) {
+                          console.log(`  ✗ Failed to kill PID ${zombie.pid}: ${e.message}\n`);
+                        }
+                      } else {
+                        console.log('\n  ✗ Invalid zombie number\n');
+                      }
+                    }
+                    setTimeout(resolve, 2000);
+                  });
+                });
+
+                // Re-detect after restart attempt
+                startSpinner('Re-detecting status...');
+                detection = await detectStatus();
+                stopSpinner('Detection complete');
+                console.log('');
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
             }
           }
         }
         break;
 
-      case 4: // Exit
+      case 4: // Tmux Window Management
+        let tmuxSessions = null;
+        while (true) {
+          const { action, sessions } = await showTmuxManagement(tmuxSessions);
+          tmuxSessions = sessions;
+
+          if (action === 'b. Back') break;
+
+          if (action === 'r. Refresh') {
+            tmuxSessions = getTmuxSessions();
+            continue;
+          }
+
+          if (action === 'k. Kill Window') {
+            // Prompt for window selection
+            const readline = require('readline');
+            const rl = readline.createInterface({
+              input: process.stdin,
+              output: process.stdout
+            });
+
+            await new Promise((resolve) => {
+              rl.question('\n  Enter window number to kill (or press Enter to cancel): ', (answer) => {
+                rl.close();
+                if (answer.trim()) {
+                  const windowNum = parseInt(answer.trim());
+                  if (windowNum > 0) {
+                    // Find the window
+                    let currentNum = 1;
+                    let targetSession = null;
+                    let targetWindow = null;
+
+                    for (const [sessionName, windows] of Object.entries(tmuxSessions)) {
+                      for (const window of windows) {
+                        if (currentNum === windowNum) {
+                          targetSession = sessionName;
+                          targetWindow = window.index;
+                          break;
+                        }
+                        currentNum++;
+                      }
+                      if (targetSession) break;
+                    }
+
+                    if (targetSession && targetWindow !== null) {
+                      try {
+                        const { execSync } = require('child_process');
+                        execSync(`tmux kill-window -t ${targetSession}:${targetWindow}`, {
+                          encoding: 'utf8',
+                          stdio: 'pipe'
+                        });
+                        console.log(`\n  ✓ Killed window ${targetSession}:${targetWindow}\n`);
+                        tmuxSessions = getTmuxSessions();
+                      } catch (e) {
+                        console.log(`\n  ✗ Failed to kill window: ${e.message}\n`);
+                      }
+                    } else {
+                      console.log('\n  ✗ Invalid window number\n');
+                    }
+                  }
+                }
+                setTimeout(resolve, 1000);
+              });
+            });
+            continue;
+          }
+
+          if (action === 's. Kill Session') {
+            // Prompt for session selection
+            const readline = require('readline');
+            const rl = readline.createInterface({
+              input: process.stdin,
+              output: process.stdout
+            });
+
+            await new Promise((resolve) => {
+              rl.question('\n  Enter session name to kill (or press Enter to cancel): ', (answer) => {
+                rl.close();
+                if (answer.trim()) {
+                  const sessionName = answer.trim();
+                  if (tmuxSessions[sessionName]) {
+                    try {
+                      const { execSync } = require('child_process');
+                      execSync(`tmux kill-session -t ${sessionName}`, {
+                        encoding: 'utf8',
+                        stdio: 'pipe'
+                      });
+                      console.log(`\n  ✓ Killed session ${sessionName}\n`);
+                      tmuxSessions = getTmuxSessions();
+                    } catch (e) {
+                      console.log(`\n  ✗ Failed to kill session: ${e.message}\n`);
+                    }
+                  } else {
+                    console.log('\n  ✗ Session not found\n');
+                  }
+                }
+                setTimeout(resolve, 1000);
+              });
+            });
+            continue;
+          }
+        }
+        break;
+
+      case 5: // Exit
         console.log('\n  Goodbye!\n');
         process.exit(0);
     }
