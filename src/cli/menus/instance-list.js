@@ -63,7 +63,7 @@ async function showInstanceList() {
     mainArea: {
       type: 'display',
       render: () => {
-        console.log('  ✓ Active  ✗ Dead  |  [CCB] Standalone  [Multi] Managed\n');
+        console.log('  \x1b[2m[CCB] Standalone  |  [Multi] Managed\x1b[0m');
       }
     },
     footer: {
