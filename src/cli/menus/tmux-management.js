@@ -31,7 +31,7 @@ function getTmuxSessions() {
         active: windowActive === '1',
         panes: parseInt(windowPanes) || 1,
         path: panePath,
-        isCCB: panePath && (panePath.includes('.ccb-instances') || windowName.includes('ccb'))
+        isCCB: panePath && panePath.includes('.ccb-instances')
       });
     }
 
@@ -82,8 +82,8 @@ async function showTmuxManagement(lastSessions = null) {
               session: sessionName,
               window: `${window.index}:${window.name}`,
               panes: window.panes,
-              type: window.isCCB ? '\x1b[32m[CCB]\x1b[0m' : '[Other]',
-              active: window.active ? '\x1b[32m●\x1b[0m' : '\x1b[90m○\x1b[0m'
+              type: window.isCCB ? '[CCB]' : '[Other]',
+              active: window.active ? '●' : '○'
             });
           }
         }

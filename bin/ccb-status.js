@@ -14,6 +14,7 @@ const { showCleanup, detectStatus } = require('../src/cli/menus/cleanup');
 const { showTmuxManagement, getTmuxSessions } = require('../src/cli/menus/tmux-management');
 const { showInfo, showSuccess, showWarning } = require('cli-menu-kit');
 const { startSpinner, stopSpinner } = require('../src/utils/spinner');
+const { execSync, execFileSync } = require('child_process');
 
 // Main loop
 async function main() {
@@ -103,7 +104,6 @@ async function main() {
                 console.log('\n  Cleaning up zombie processes...\n');
 
                 // Call ccb-cleanup to kill zombie daemons
-                const { execSync } = require('child_process');
                 const pids = detection.zombies.map(z => z.pid).join(' ');
 
                 try {
@@ -213,7 +213,7 @@ async function main() {
                 rl.close();
                 if (answer.trim()) {
                   const windowNum = parseInt(answer.trim());
-                  if (windowNum > 0) {
+                  if (windowNum > 0 && !isNaN(windowNum)) {
                     // Find the window
                     let currentNum = 1;
                     let targetSession = null;
@@ -233,8 +233,7 @@ async function main() {
 
                     if (targetSession && targetWindow !== null) {
                       try {
-                        const { execSync } = require('child_process');
-                        execSync(`tmux kill-window -t ${targetSession}:${targetWindow}`, {
+                        execFileSync('tmux', ['kill-window', '-t', `${targetSession}:${targetWindow}`], {
                           encoding: 'utf8',
                           stdio: 'pipe'
                         });
@@ -246,6 +245,8 @@ async function main() {
                     } else {
                       console.log('\n  ✗ Invalid window number\n');
                     }
+                  } else {
+                    console.log('\n  ✗ Invalid window number\n');
                   }
                 }
                 setTimeout(resolve, 1000);
@@ -269,8 +270,7 @@ async function main() {
                   const sessionName = answer.trim();
                   if (tmuxSessions[sessionName]) {
                     try {
-                      const { execSync } = require('child_process');
-                      execSync(`tmux kill-session -t ${sessionName}`, {
+                      execFileSync('tmux', ['kill-session', '-t', sessionName], {
                         encoding: 'utf8',
                         stdio: 'pipe'
                       });
