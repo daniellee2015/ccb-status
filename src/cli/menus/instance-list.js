@@ -5,6 +5,7 @@
 
 const { renderPage } = require('cli-menu-kit');
 const os = require('os');
+const path = require('path');
 const { getCCBInstances } = require('../../services/instance-service');
 
 async function showInstanceList() {
@@ -21,8 +22,26 @@ async function showInstanceList() {
 
   const options = instances.map((inst, idx) => {
     const status = inst.isAlive ? '✓ Active' : '✗ Dead';
-    const dir = inst.workDir.replace(os.homedir(), '~');
-    return `${idx + 1}. ${dir} [${status}]`;
+
+    // Get project name from work_dir
+    // work_dir format: /path/to/project/.ccb-instances/inst-xxx
+    // We want to extract "project" name
+    let projectName = path.basename(inst.workDir);
+
+    // If workDir contains .ccb-instances, get the parent's parent directory name
+    if (inst.workDir.includes('.ccb-instances')) {
+      const parts = inst.workDir.split(path.sep);
+      const ccbIndex = parts.indexOf('.ccb-instances');
+      if (ccbIndex > 0) {
+        projectName = parts[ccbIndex - 1];
+      }
+    }
+
+    // Get instance hash from stateFile path (parent directory name)
+    const instanceHash = path.basename(path.dirname(inst.stateFile));
+    const shortHash = instanceHash.substring(0, 8);
+
+    return `${idx + 1}. ${projectName} (${shortHash}) [${status}]`;
   });
 
   // Add 'Back' option to the main menu
