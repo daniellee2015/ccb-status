@@ -1,0 +1,35 @@
+{
+  "name": "ccb-status",
+  "version": "0.1.0",
+  "description": "Status monitor for Claude Code Bridge - Monitor all CCB instances and daemon health",
+  "main": "lib/index.js",
+  "bin": {
+    "ccb-status": "./bin/ccb-status.js"
+  },
+  "scripts": {
+    "build": "echo 'No build needed for now'",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ccb",
+    "claude",
+    "claude-code-bridge",
+    "status",
+    "monitor",
+    "daemon",
+    "cli",
+    "multi-instance"
+  ],
+  "author": "dalio willd",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daniellee2015/ccb-status.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "cli-menu-kit": "^1.0.0"
+  }
+}
