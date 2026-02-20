@@ -126,6 +126,8 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
         console.log(`    CCB Windows: \x1b[32m${ccbWindows}\x1b[0m`);
         console.log(`    View: ${showAll ? 'All sessions' : 'Attached only'}`);
         console.log('');
+        console.log('  \x1b[2mStructure: Session → Window → Panes\x1b[0m');
+        console.log('');
 
         // Prepare table data
         const tableData = [];
@@ -133,13 +135,16 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
 
         for (const [sessionName, sessionData] of Object.entries(sessions)) {
           for (const window of sessionData.windows) {
+            const windowDisplay = window.active
+              ? `${window.index}:${window.name} ●`
+              : `${window.index}:${window.name}`;
+
             tableData.push({
               no: rowNum++,
               session: sessionName + (sessionData.attached ? ' *' : ''),
-              window: `${window.index}:${window.name}`,
+              window: windowDisplay,
               panes: window.panes,
-              type: window.isCCB ? '[CCB]' : '[Other]',
-              active: window.active ? '●' : '○'
+              type: window.isCCB ? '[CCB]' : '[Other]'
             });
           }
         }
@@ -149,10 +154,9 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
           columns: [
             { header: '#', key: 'no', align: 'center', width: 4 },
             { header: 'Session', key: 'session', align: 'left', width: 18 },
-            { header: 'Window', key: 'window', align: 'left', width: 20 },
+            { header: 'Window (Index:Name)', key: 'window', align: 'left', width: 25 },
             { header: 'Panes', key: 'panes', align: 'center', width: 7 },
-            { header: 'Type', key: 'type', align: 'left', width: 9 },
-            { header: 'Active', key: 'active', align: 'center', width: 8 }
+            { header: 'Type', key: 'type', align: 'left', width: 9 }
           ],
           data: tableData,
           showBorders: true,
@@ -161,7 +165,7 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
         });
 
         console.log('');
-        console.log('  \x1b[2m* = attached session\x1b[0m');
+        console.log('  \x1b[2m* = attached session | ● = active window in session\x1b[0m');
       }
     },
     footer: {
