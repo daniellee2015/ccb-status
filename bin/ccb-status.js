@@ -210,14 +210,22 @@ async function main() {
 
       case 4: // Tmux Window Management
         let tmuxSessions = null;
+        let showAllSessions = false;
         while (true) {
-          const { action, sessions } = await showTmuxManagement(tmuxSessions);
+          const { action, sessions, showAll } = await showTmuxManagement(tmuxSessions, showAllSessions);
           tmuxSessions = sessions;
+          showAllSessions = showAll;
 
           if (action === 'b. Back') break;
 
           if (action === 'r. Refresh') {
-            tmuxSessions = getTmuxSessions();
+            tmuxSessions = getTmuxSessions(!showAllSessions);
+            continue;
+          }
+
+          if (action === 'a. Toggle All/Attached') {
+            showAllSessions = !showAllSessions;
+            tmuxSessions = getTmuxSessions(!showAllSessions);
             continue;
           }
 
@@ -240,8 +248,8 @@ async function main() {
                     let targetSession = null;
                     let targetWindow = null;
 
-                    for (const [sessionName, windows] of Object.entries(tmuxSessions)) {
-                      for (const window of windows) {
+                    for (const [sessionName, sessionData] of Object.entries(tmuxSessions)) {
+                      for (const window of sessionData.windows) {
                         if (currentNum === windowNum) {
                           targetSession = sessionName;
                           targetWindow = window.index;
@@ -269,7 +277,7 @@ async function main() {
                               stdio: 'pipe'
                             });
                             console.log(`\n  ✓ Killed window ${targetSession}:${targetWindow}\n`);
-                            tmuxSessions = getTmuxSessions();
+                            tmuxSessions = getTmuxSessions(!showAllSessions);
                           } catch (e) {
                             console.log(`\n  ✗ Failed to kill window: ${e.message}\n`);
                           }
@@ -325,7 +333,7 @@ async function main() {
                             stdio: 'pipe'
                           });
                           console.log(`\n  ✓ Killed session ${sessionName}\n`);
-                          tmuxSessions = getTmuxSessions();
+                          tmuxSessions = getTmuxSessions(!showAllSessions);
                         } catch (e) {
                           console.log(`\n  ✗ Failed to kill session: ${e.message}\n`);
                         }

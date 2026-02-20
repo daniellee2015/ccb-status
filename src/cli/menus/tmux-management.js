@@ -8,9 +8,24 @@ const { execSync } = require('child_process');
 
 /**
  * Get all tmux sessions and windows
+ * @param {boolean} onlyAttached - Only show attached sessions
  */
-function getTmuxSessions() {
+function getTmuxSessions(onlyAttached = true) {
   try {
+    // Get session info first
+    const sessionsResult = execSync('tmux list-sessions -F "#{session_name}\t#{session_attached}"', {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+
+    const sessionInfo = {};
+    for (const line of sessionsResult.split('\n')) {
+      if (!line) continue;
+      const [name, attached] = line.split('\t');
+      sessionInfo[name] = attached === '1';
+    }
+
+    // Get windows info
     const result = execSync('tmux list-windows -a -F "#{session_name}\t#{window_index}\t#{window_name}\t#{window_active}\t#{window_panes}\t#{pane_current_path}"', {
       encoding: 'utf8',
       timeout: 2000
@@ -25,11 +40,19 @@ function getTmuxSessions() {
 
       const [sessionName, windowIndex, windowName, windowActive, windowPanes, panePath] = parts;
 
-      if (!sessions[sessionName]) {
-        sessions[sessionName] = [];
+      // Filter by attached status if requested
+      if (onlyAttached && !sessionInfo[sessionName]) {
+        continue;
       }
 
-      sessions[sessionName].push({
+      if (!sessions[sessionName]) {
+        sessions[sessionName] = {
+          attached: sessionInfo[sessionName] || false,
+          windows: []
+        };
+      }
+
+      sessions[sessionName].windows.push({
         index: windowIndex,
         name: windowName,
         active: windowActive === '1',
@@ -45,8 +68,8 @@ function getTmuxSessions() {
   }
 }
 
-async function showTmuxManagement(lastSessions = null) {
-  const sessions = lastSessions || getTmuxSessions();
+async function showTmuxManagement(lastSessions = null, showAll = false) {
+  const sessions = lastSessions || getTmuxSessions(!showAll);
 
   // Check for error
   if (sessions.error) {
@@ -70,16 +93,18 @@ async function showTmuxManagement(lastSessions = null) {
       }
     });
 
-    return { action: result.value, sessions: {} };
+    return { action: result.value, sessions: {}, showAll };
   }
 
   const sessionCount = Object.keys(sessions).length;
   let totalWindows = 0;
   let ccbWindows = 0;
+  let attachedCount = 0;
 
-  for (const windows of Object.values(sessions)) {
-    totalWindows += windows.length;
-    ccbWindows += windows.filter(w => w.isCCB).length;
+  for (const [sessionName, sessionData] of Object.entries(sessions)) {
+    if (sessionData.attached) attachedCount++;
+    totalWindows += sessionData.windows.length;
+    ccbWindows += sessionData.windows.filter(w => w.isCCB).length;
   }
 
   const result = await renderPage({
@@ -96,20 +121,21 @@ async function showTmuxManagement(lastSessions = null) {
         }
 
         console.log('  Session Overview:');
-        console.log(`    Sessions: ${sessionCount}`);
+        console.log(`    Sessions: ${sessionCount} (${attachedCount} attached)`);
         console.log(`    Total Windows: ${totalWindows}`);
         console.log(`    CCB Windows: \x1b[32m${ccbWindows}\x1b[0m`);
+        console.log(`    View: ${showAll ? 'All sessions' : 'Attached only'}`);
         console.log('');
 
         // Prepare table data
         const tableData = [];
         let rowNum = 1;
 
-        for (const [sessionName, windows] of Object.entries(sessions)) {
-          for (const window of windows) {
+        for (const [sessionName, sessionData] of Object.entries(sessions)) {
+          for (const window of sessionData.windows) {
             tableData.push({
               no: rowNum++,
-              session: sessionName,
+              session: sessionName + (sessionData.attached ? ' *' : ''),
               window: `${window.index}:${window.name}`,
               panes: window.panes,
               type: window.isCCB ? '[CCB]' : '[Other]',
@@ -122,7 +148,7 @@ async function showTmuxManagement(lastSessions = null) {
         renderTable({
           columns: [
             { header: '#', key: 'no', align: 'center', width: 4 },
-            { header: 'Session', key: 'session', align: 'left', width: 15 },
+            { header: 'Session', key: 'session', align: 'left', width: 18 },
             { header: 'Window', key: 'window', align: 'left', width: 20 },
             { header: 'Panes', key: 'panes', align: 'center', width: 7 },
             { header: 'Type', key: 'type', align: 'left', width: 9 },
@@ -133,19 +159,22 @@ async function showTmuxManagement(lastSessions = null) {
           showHeaderSeparator: true,
           borderColor: '\x1b[2m'
         });
+
+        console.log('');
+        console.log('  \x1b[2m* = attached session\x1b[0m');
       }
     },
     footer: {
       menu: {
         options: sessionCount > 0
-          ? ['r. Refresh', 'k. Kill Window', 's. Kill Session', 'b. Back']
+          ? ['r. Refresh', 'a. Toggle All/Attached', 'k. Kill Window', 's. Kill Session', 'b. Back']
           : ['r. Refresh', 'b. Back'],
         allowLetterKeys: true
       }
     }
   });
 
-  return { action: result.value, sessions };
+  return { action: result.value, sessions, showAll };
 }
 
 module.exports = { showTmuxManagement, getTmuxSessions };
