@@ -230,7 +230,50 @@ async function main() {
           }
 
           if (action === 'k. Kill Window') {
-            // Prompt for window selection
+            // Build window list for selection
+            const windowOptions = [];
+            const windowMap = [];
+
+            for (const [sessionName, sessionData] of Object.entries(tmuxSessions)) {
+              for (const window of sessionData.windows) {
+                const ccbInfo = window.ccbInfo ? ` [CCB: PID ${window.ccbInfo.pid}]` : '';
+                const label = `Session ${sessionName}: ${window.index}:${window.name} (${window.panes} panes)${ccbInfo}`;
+                windowOptions.push(label);
+                windowMap.push({ session: sessionName, window: window.index });
+              }
+            }
+
+            if (windowOptions.length === 0) {
+              console.log('\n  No windows to kill\n');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              continue;
+            }
+
+            windowOptions.push('Cancel');
+
+            const { renderPage } = require('cli-menu-kit');
+            const selectResult = await renderPage({
+              header: {
+                type: 'simple',
+                text: 'Select Window to Kill'
+              },
+              mainArea: {
+                type: 'menu',
+                menu: {
+                  options: windowOptions,
+                  allowNumberKeys: true
+                }
+              }
+            });
+
+            if (selectResult.index === windowOptions.length - 1) {
+              // Cancelled
+              continue;
+            }
+
+            const target = windowMap[selectResult.index];
+
+            // Confirm before killing
             const readline = require('readline');
             const rl = readline.createInterface({
               input: process.stdin,
@@ -238,73 +281,77 @@ async function main() {
             });
 
             await new Promise((resolve) => {
-              rl.question('\n  Enter window number to kill (or press Enter to cancel): ', async (answer) => {
+              rl.question(`\n  ⚠️  Kill window ${target.session}:${target.window}? (y/N): `, async (confirm) => {
                 rl.close();
-                if (answer.trim()) {
-                  const windowNum = parseInt(answer.trim());
-                  if (windowNum > 0 && !isNaN(windowNum)) {
-                    // Find the window
-                    let currentNum = 1;
-                    let targetSession = null;
-                    let targetWindow = null;
 
-                    for (const [sessionName, sessionData] of Object.entries(tmuxSessions)) {
-                      for (const window of sessionData.windows) {
-                        if (currentNum === windowNum) {
-                          targetSession = sessionName;
-                          targetWindow = window.index;
-                          break;
-                        }
-                        currentNum++;
-                      }
-                      if (targetSession) break;
-                    }
-
-                    if (targetSession && targetWindow !== null) {
-                      // Confirm before killing
-                      const rl2 = require('readline').createInterface({
-                        input: process.stdin,
-                        output: process.stdout
-                      });
-
-                      rl2.question(`\n  ⚠️  Kill window ${targetSession}:${targetWindow}? (y/N): `, async (confirm) => {
-                        rl2.close();
-
-                        if (confirm.trim().toLowerCase() === 'y') {
-                          try {
-                            execFileSync('tmux', ['kill-window', '-t', `${targetSession}:${targetWindow}`], {
-                              encoding: 'utf8',
-                              stdio: 'pipe'
-                            });
-                            console.log(`\n  ✓ Killed window ${targetSession}:${targetWindow}\n`);
-                            tmuxSessions = await getTmuxSessions(!showAllSessions);
-                          } catch (e) {
-                            console.log(`\n  ✗ Failed to kill window: ${e.message}\n`);
-                          }
-                        } else {
-                          console.log('\n  Cancelled\n');
-                        }
-
-                        setTimeout(resolve, 1000);
-                      });
-                    } else {
-                      console.log('\n  ✗ Invalid window number\n');
-                      setTimeout(resolve, 1000);
-                    }
-                  } else {
-                    console.log('\n  ✗ Invalid window number\n');
-                    setTimeout(resolve, 1000);
+                if (confirm.trim().toLowerCase() === 'y') {
+                  try {
+                    execFileSync('tmux', ['kill-window', '-t', `${target.session}:${target.window}`], {
+                      encoding: 'utf8',
+                      stdio: 'pipe'
+                    });
+                    console.log(`\n  ✓ Killed window ${target.session}:${target.window}\n`);
+                    tmuxSessions = await getTmuxSessions(!showAllSessions);
+                  } catch (e) {
+                    console.log(`\n  ✗ Failed to kill window: ${e.message}\n`);
                   }
                 } else {
-                  setTimeout(resolve, 500);
+                  console.log('\n  Cancelled\n');
                 }
+
+                setTimeout(resolve, 1000);
               });
             });
             continue;
           }
 
           if (action === 's. Kill Session') {
-            // Prompt for session selection
+            // Build session list for selection
+            const sessionOptions = [];
+            const sessionNames = [];
+
+            for (const [sessionName, sessionData] of Object.entries(tmuxSessions)) {
+              const attachedMark = sessionData.attached ? ' *' : '';
+              const windowCount = sessionData.windows.length;
+              const ccbWindows = sessionData.windows.filter(w => w.isCCB).length;
+              const ccbInfo = ccbWindows > 0 ? ` [${ccbWindows} CCB window(s)]` : '';
+
+              const label = `Session ${sessionName}${attachedMark}: ${windowCount} window(s)${ccbInfo}`;
+              sessionOptions.push(label);
+              sessionNames.push(sessionName);
+            }
+
+            if (sessionOptions.length === 0) {
+              console.log('\n  No sessions to kill\n');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              continue;
+            }
+
+            sessionOptions.push('Cancel');
+
+            const { renderPage } = require('cli-menu-kit');
+            const selectResult = await renderPage({
+              header: {
+                type: 'simple',
+                text: 'Select Session to Kill'
+              },
+              mainArea: {
+                type: 'menu',
+                menu: {
+                  options: sessionOptions,
+                  allowNumberKeys: true
+                }
+              }
+            });
+
+            if (selectResult.index === sessionOptions.length - 1) {
+              // Cancelled
+              continue;
+            }
+
+            const targetSession = sessionNames[selectResult.index];
+
+            // Confirm before killing
             const readline = require('readline');
             const rl = readline.createInterface({
               input: process.stdin,
@@ -312,44 +359,25 @@ async function main() {
             });
 
             await new Promise((resolve) => {
-              rl.question('\n  Enter session name to kill (or press Enter to cancel): ', async (answer) => {
+              rl.question(`\n  ⚠️  Kill entire session "${targetSession}"? This will close all windows. (y/N): `, async (confirm) => {
                 rl.close();
-                if (answer.trim()) {
-                  const sessionName = answer.trim();
-                  if (tmuxSessions[sessionName]) {
-                    // Confirm before killing
-                    const rl2 = require('readline').createInterface({
-                      input: process.stdin,
-                      output: process.stdout
+
+                if (confirm.trim().toLowerCase() === 'y') {
+                  try {
+                    execFileSync('tmux', ['kill-session', '-t', targetSession], {
+                      encoding: 'utf8',
+                      stdio: 'pipe'
                     });
-
-                    rl2.question(`\n  ⚠️  Kill entire session "${sessionName}"? This will close all windows. (y/N): `, async (confirm) => {
-                      rl2.close();
-
-                      if (confirm.trim().toLowerCase() === 'y') {
-                        try {
-                          execFileSync('tmux', ['kill-session', '-t', sessionName], {
-                            encoding: 'utf8',
-                            stdio: 'pipe'
-                          });
-                          console.log(`\n  ✓ Killed session ${sessionName}\n`);
-                          tmuxSessions = await getTmuxSessions(!showAllSessions);
-                        } catch (e) {
-                          console.log(`\n  ✗ Failed to kill session: ${e.message}\n`);
-                        }
-                      } else {
-                        console.log('\n  Cancelled\n');
-                      }
-
-                      setTimeout(resolve, 1000);
-                    });
-                  } else {
-                    console.log('\n  ✗ Session not found\n');
-                    setTimeout(resolve, 1000);
+                    console.log(`\n  ✓ Killed session ${targetSession}\n`);
+                    tmuxSessions = await getTmuxSessions(!showAllSessions);
+                  } catch (e) {
+                    console.log(`\n  ✗ Failed to kill session: ${e.message}\n`);
                   }
                 } else {
-                  setTimeout(resolve, 500);
+                  console.log('\n  Cancelled\n');
                 }
+
+                setTimeout(resolve, 1000);
               });
             });
             continue;
