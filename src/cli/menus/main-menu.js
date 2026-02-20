@@ -30,7 +30,7 @@ async function showMainMenu() {
           '1. View Active Instances',
           '2. View Instance History',
           '3. Refresh Status',
-          '4. Cleanup Zombie Processes',
+          '4. Zombie Detection',
           '5. Exit'
         ],
         allowNumberKeys: true,

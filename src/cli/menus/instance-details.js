@@ -49,7 +49,12 @@ async function showInstanceDetails(instance) {
 
         if (instance.tmuxPane) {
           console.log('\n  Tmux Info:');
-          console.log(`    Pane ID:    ${instance.tmuxPane}`);
+          if (instance.tmuxPane.id) {
+            console.log(`    Pane ID:    ${instance.tmuxPane.id}`);
+          }
+          if (instance.tmuxPane.title) {
+            console.log(`    Title:      ${instance.tmuxPane.title}`);
+          }
         }
 
         console.log('\n  LLM Sessions:');

@@ -52,17 +52,23 @@ function isPortListening(port, host = '127.0.0.1', timeout = 100) {
 /**
  * Get tmux pane ID for work directory
  */
-function getTmuxPaneId(workDir) {
+function getTmuxPaneInfo(workDir) {
   try {
-    const result = execSync('tmux list-panes -a -F "#{pane_id}\\t#{pane_current_path}"', {
+    const result = execSync('tmux list-panes -a -F "#{pane_id}\\t#{pane_current_path}\\t#{pane_title}"', {
       encoding: 'utf8',
       timeout: 2000
     });
 
     for (const line of result.split('\n')) {
-      const [paneId, panePath] = line.split('\t');
-      if (panePath === workDir) {
-        return paneId;
+      if (!line) continue;
+      const parts = line.split('\\t');
+      if (parts.length >= 3) {
+        const paneId = parts[0];
+        const panePath = parts[1];
+        const paneTitle = parts[2];
+        if (panePath === workDir) {
+          return { id: paneId, title: paneTitle };
+        }
       }
     }
   } catch (e) {
@@ -221,7 +227,7 @@ async function getCCBInstances() {
         startedAt: data.started_at,
         parentPid: data.parent_pid,
         managed: data.managed,
-        tmuxPane: getTmuxPaneId(workDir),
+        tmuxPane: getTmuxPaneInfo(workDir),
         llmStatus: getLLMStatus(workDir),
         uptime: getUptime(data.started_at)
       });
@@ -236,7 +242,7 @@ async function getCCBInstances() {
 module.exports = {
   isPidAlive,
   isPortListening,
-  getTmuxPaneId,
+  getTmuxPaneInfo,
   getLLMStatus,
   getUptime,
   getCCBInstances
