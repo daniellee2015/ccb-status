@@ -92,7 +92,7 @@ async function getTmuxSessions(onlyAttached = true) {
 }
 
 async function showTmuxManagement(lastSessions = null, showAll = false) {
-  const sessions = lastSessions || getTmuxSessions(!showAll);
+  const sessions = lastSessions || await getTmuxSessions(!showAll);
 
   // Check for error
   if (sessions.error) {
