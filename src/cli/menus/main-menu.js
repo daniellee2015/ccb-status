@@ -9,8 +9,18 @@ async function showMainMenu() {
   const result = await renderPage({
     header: {
       type: 'full',
+      asciiArt: [
+        '██╗    ██╗ █████╗  ██████╗  ██████╗  ██████╗  ██████╗ ',
+        '██║    ██║██╔══██╗██╔═══██╗██╔═══██╗██╔═══██╗██╔═══██╗',
+        '██║ █╗ ██║███████║██║   ██║██║   ██║██║   ██║██║   ██║',
+        '██║███╗██║██╔══██║██║   ██║██║   ██║██║   ██║██║   ██║',
+        '╚███╔███╔╝██║  ██║╚██████╔╝╚██████╔╝╚██████╔╝╚██████╔╝',
+        ' ╚══╝╚══╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝  ╚═════╝  ╚═════╝ '
+      ],
       title: 'CCB Status Monitor',
+      description: 'Real-time monitoring for CCB instances',
       version: '0.1.0',
+      url: 'https://github.com/daniellee2015/ccb-status',
       menuTitle: 'Select an option:'
     },
     mainArea: {
