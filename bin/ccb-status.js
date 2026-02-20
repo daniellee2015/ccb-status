@@ -219,13 +219,13 @@ async function main() {
           if (action === 'b. Back') break;
 
           if (action === 'r. Refresh') {
-            tmuxSessions = getTmuxSessions(!showAllSessions);
+            tmuxSessions = await getTmuxSessions(!showAllSessions);
             continue;
           }
 
           if (action === 'a. Toggle All/Attached') {
             showAllSessions = !showAllSessions;
-            tmuxSessions = getTmuxSessions(!showAllSessions);
+            tmuxSessions = await getTmuxSessions(!showAllSessions);
             continue;
           }
 
@@ -238,7 +238,7 @@ async function main() {
             });
 
             await new Promise((resolve) => {
-              rl.question('\n  Enter window number to kill (or press Enter to cancel): ', (answer) => {
+              rl.question('\n  Enter window number to kill (or press Enter to cancel): ', async (answer) => {
                 rl.close();
                 if (answer.trim()) {
                   const windowNum = parseInt(answer.trim());
@@ -267,7 +267,7 @@ async function main() {
                         output: process.stdout
                       });
 
-                      rl2.question(`\n  ⚠️  Kill window ${targetSession}:${targetWindow}? (y/N): `, (confirm) => {
+                      rl2.question(`\n  ⚠️  Kill window ${targetSession}:${targetWindow}? (y/N): `, async (confirm) => {
                         rl2.close();
 
                         if (confirm.trim().toLowerCase() === 'y') {
@@ -277,7 +277,7 @@ async function main() {
                               stdio: 'pipe'
                             });
                             console.log(`\n  ✓ Killed window ${targetSession}:${targetWindow}\n`);
-                            tmuxSessions = getTmuxSessions(!showAllSessions);
+                            tmuxSessions = await getTmuxSessions(!showAllSessions);
                           } catch (e) {
                             console.log(`\n  ✗ Failed to kill window: ${e.message}\n`);
                           }
@@ -312,7 +312,7 @@ async function main() {
             });
 
             await new Promise((resolve) => {
-              rl.question('\n  Enter session name to kill (or press Enter to cancel): ', (answer) => {
+              rl.question('\n  Enter session name to kill (or press Enter to cancel): ', async (answer) => {
                 rl.close();
                 if (answer.trim()) {
                   const sessionName = answer.trim();
@@ -323,7 +323,7 @@ async function main() {
                       output: process.stdout
                     });
 
-                    rl2.question(`\n  ⚠️  Kill entire session "${sessionName}"? This will close all windows. (y/N): `, (confirm) => {
+                    rl2.question(`\n  ⚠️  Kill entire session "${sessionName}"? This will close all windows. (y/N): `, async (confirm) => {
                       rl2.close();
 
                       if (confirm.trim().toLowerCase() === 'y') {
@@ -333,7 +333,7 @@ async function main() {
                             stdio: 'pipe'
                           });
                           console.log(`\n  ✓ Killed session ${sessionName}\n`);
-                          tmuxSessions = getTmuxSessions(!showAllSessions);
+                          tmuxSessions = await getTmuxSessions(!showAllSessions);
                         } catch (e) {
                           console.log(`\n  ✗ Failed to kill session: ${e.message}\n`);
                         }

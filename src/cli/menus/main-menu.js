@@ -30,8 +30,8 @@ async function showMainMenu() {
           '1. View Active Instances',
           '2. View Instance History',
           '3. Refresh Status',
-          '4. Zombie Detection',
-          '5. Tmux Window Management',
+          '4. CCB Instance Management',
+          '5. Tmux Session Management',
           '6. Exit'
         ],
         allowNumberKeys: true,

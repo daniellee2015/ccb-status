@@ -9,7 +9,7 @@ async function showZombieDetection(lastDetection = null) {
   const result = await renderPage({
     header: {
       type: 'section',
-      text: 'Zombie Detection'
+      text: 'CCB Instance Management'
     },
     mainArea: {
       type: 'display',
