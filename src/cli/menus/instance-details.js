@@ -5,6 +5,7 @@
 
 const { renderPage } = require('cli-menu-kit');
 const os = require('os');
+const path = require('path');
 
 async function showInstanceDetails(instance) {
   // Default status in case llmStatus is missing
@@ -15,15 +16,28 @@ async function showInstanceDetails(instance) {
     codex: { active: false, session: null }
   };
 
+  // Format title same as list: projectName (shortHash)
+  let projectName = path.basename(instance.workDir);
+  if (instance.workDir.includes('.ccb-instances')) {
+    const parts = instance.workDir.split(path.sep);
+    const ccbIndex = parts.indexOf('.ccb-instances');
+    if (ccbIndex > 0) {
+      projectName = parts[ccbIndex - 1];
+    }
+  }
+  const instanceHash = path.basename(path.dirname(instance.stateFile));
+  const shortHash = instanceHash.substring(0, 8);
+  const title = `${projectName} (${shortHash})`;
+
   const result = await renderPage({
     header: {
       type: 'simple',
-      text: `Instance: ${instance.workDir.replace(os.homedir(), '~')}`
+      text: title
     },
     mainArea: {
       type: 'display',
       render: () => {
-        console.log('\n  Daemon Status:');
+        console.log('  Daemon Status:');
         console.log(`    Status:     ${instance.isAlive ? '\x1b[32m✓ Running\x1b[0m' : '\x1b[31m✗ Stopped\x1b[0m'}`);
         console.log(`    PID:        ${instance.pid}`);
         console.log(`    Port:       ${instance.port}`);

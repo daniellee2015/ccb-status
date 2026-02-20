@@ -7,9 +7,13 @@ const { renderPage } = require('cli-menu-kit');
 const os = require('os');
 const path = require('path');
 const { getCCBInstances } = require('../../services/instance-service');
+const { updateHistory } = require('../../services/history-service');
 
 async function showInstanceList() {
   const instances = getCCBInstances();
+
+  // Update history with current instances
+  updateHistory(instances);
 
   if (instances.length === 0) {
     console.log('\n  No CCB instances found.\n');
@@ -41,7 +45,11 @@ async function showInstanceList() {
     const instanceHash = path.basename(path.dirname(inst.stateFile));
     const shortHash = instanceHash.substring(0, 8);
 
-    return `${idx + 1}. ${projectName} (${shortHash}) [${status}]`;
+    // Determine type based on work_dir
+    // If work_dir contains .ccb-instances, it's managed by ccb-multi
+    const type = inst.workDir.includes('.ccb-instances') ? '[Multi]' : '[CCB]';
+
+    return `${idx + 1}. ${projectName} (${shortHash}) [${status}] ${type}`;
   });
 
   // Add 'Back' option to the main menu
@@ -49,18 +57,21 @@ async function showInstanceList() {
 
   const result = await renderPage({
     header: {
-      type: 'simple',
-      text: 'CCB Instances'
+      type: 'section',
+      text: 'Active Instances'
     },
     mainArea: {
-      type: 'menu',
+      type: 'display',
+      render: () => {
+        console.log('  ✓ Active  ✗ Dead  |  [CCB] Standalone  [Multi] Managed\n');
+      }
+    },
+    footer: {
       menu: {
         options: options,
         allowNumberKeys: true,
         allowLetterKeys: true
-      }
-    },
-    footer: {
+      },
       hints: ['↑↓ Navigate', 'Enter Select', 'B Back']
     }
   });

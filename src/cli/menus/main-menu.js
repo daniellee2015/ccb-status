@@ -27,10 +27,11 @@ async function showMainMenu() {
       type: 'menu',
       menu: {
         options: [
-          '1. View Instance List',
-          '2. Refresh Status',
-          '3. Cleanup Zombie Processes',
-          '4. Exit'
+          '1. View Active Instances',
+          '2. View History',
+          '3. Refresh Status',
+          '4. Cleanup Zombie Processes',
+          '5. Exit'
         ],
         allowNumberKeys: true,
         allowLetterKeys: false
