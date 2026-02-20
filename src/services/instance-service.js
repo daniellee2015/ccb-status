@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
+const net = require('net');
 
 /**
  * Check if PID is alive
@@ -19,6 +20,33 @@ function isPidAlive(pid) {
   } catch (e) {
     return false;
   }
+}
+
+/**
+ * Check if port is listening (lightweight check)
+ */
+function isPortListening(port, host = '127.0.0.1', timeout = 100) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+
+    socket.setTimeout(timeout);
+
+    socket.on('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+
+    socket.on('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+
+    socket.on('error', () => {
+      resolve(false);
+    });
+
+    socket.connect(port, host);
+  });
 }
 
 /**
@@ -143,7 +171,7 @@ function getUptime(startedAt) {
 /**
  * Get all CCB instances
  */
-function getCCBInstances() {
+async function getCCBInstances() {
   const cacheDir = path.join(os.homedir(), '.cache', 'ccb', 'projects');
   if (!fs.existsSync(cacheDir)) {
     return [];
@@ -159,14 +187,35 @@ function getCCBInstances() {
     try {
       const data = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
       const pid = parseInt(data.pid || 0);
-      const isAlive = isPidAlive(pid);
+      const port = data.port || 0;
+      const host = data.host || '127.0.0.1';
       const workDir = data.work_dir || projectDir;
+
+      // Determine status: Active, Zombie, or Dead
+      let status = 'dead';
+      let isAlive = false;
+
+      if (isPidAlive(pid)) {
+        // PID exists, check if port is listening
+        const portListening = await isPortListening(port, host);
+        if (portListening) {
+          status = 'active';
+          isAlive = true;
+        } else {
+          status = 'zombie';
+          isAlive = false; // Zombie is considered not alive
+        }
+      } else {
+        status = 'dead';
+        isAlive = false;
+      }
 
       instances.push({
         workDir: workDir,
         pid: pid,
-        port: data.port || 0,
-        host: data.host || '127.0.0.1',
+        port: port,
+        host: host,
+        status: status,
         isAlive: isAlive,
         stateFile: stateFile,
         startedAt: data.started_at,
@@ -186,6 +235,7 @@ function getCCBInstances() {
 
 module.exports = {
   isPidAlive,
+  isPortListening,
   getTmuxPaneId,
   getLLMStatus,
   getUptime,

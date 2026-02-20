@@ -28,7 +28,7 @@ async function showMainMenu() {
       menu: {
         options: [
           '1. View Active Instances',
-          '2. View History',
+          '2. View Instance History',
           '3. Refresh Status',
           '4. Cleanup Zombie Processes',
           '5. Exit'

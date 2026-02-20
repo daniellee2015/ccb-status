@@ -10,7 +10,7 @@ const { getCCBInstances } = require('../../services/instance-service');
 const { updateHistory } = require('../../services/history-service');
 
 async function showInstanceList() {
-  const instances = getCCBInstances();
+  const instances = await getCCBInstances();
 
   // Update history with current instances
   updateHistory(instances);
@@ -25,7 +25,15 @@ async function showInstanceList() {
   }
 
   const options = instances.map((inst, idx) => {
-    const status = inst.isAlive ? '✓ Active' : '✗ Dead';
+    // Map status to display format
+    let statusDisplay;
+    if (inst.status === 'active') {
+      statusDisplay = '✓ Active';
+    } else if (inst.status === 'zombie') {
+      statusDisplay = '⚠ Zombie';
+    } else {
+      statusDisplay = '✗ Dead';
+    }
 
     // Get project name from work_dir
     // work_dir format: /path/to/project/.ccb-instances/inst-xxx
@@ -49,7 +57,7 @@ async function showInstanceList() {
     // If work_dir contains .ccb-instances, it's managed by ccb-multi
     const type = inst.workDir.includes('.ccb-instances') ? '[Multi]' : '[CCB]';
 
-    return `${idx + 1}. ${projectName} (${shortHash}) [${status}] ${type}`;
+    return `${idx + 1}. ${projectName} (${shortHash}) [${statusDisplay}] ${type}`;
   });
 
   // Add 'Back' option to the main menu
@@ -58,12 +66,12 @@ async function showInstanceList() {
   const result = await renderPage({
     header: {
       type: 'section',
-      text: 'Active Instances'
+      text: 'Active Instances List'
     },
     mainArea: {
       type: 'display',
       render: () => {
-        console.log('  \x1b[2m[CCB] Standalone  |  [Multi] Managed\x1b[0m');
+        console.log('  \x1b[2m✓ Active  ⚠ Zombie  ✗ Dead  |  [CCB] Standalone  [Multi] Managed\x1b[0m');
       }
     },
     footer: {
