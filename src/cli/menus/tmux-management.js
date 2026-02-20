@@ -11,7 +11,7 @@ const { execSync } = require('child_process');
  */
 function getTmuxSessions() {
   try {
-    const result = execSync('tmux list-windows -a -F "#{session_name}\\t#{window_index}\\t#{window_name}\\t#{window_active}\\t#{window_panes}\\t#{pane_current_path}"', {
+    const result = execSync('tmux list-windows -a -F "#{session_name}\t#{window_index}\t#{window_name}\t#{window_active}\t#{window_panes}\t#{pane_current_path}"', {
       encoding: 'utf8',
       timeout: 2000
     });
@@ -19,7 +19,11 @@ function getTmuxSessions() {
     const sessions = {};
     for (const line of result.split('\n')) {
       if (!line) continue;
-      const [sessionName, windowIndex, windowName, windowActive, windowPanes, panePath] = line.split('\t');
+      const parts = line.split('\t');
+
+      if (parts.length < 6) continue;
+
+      const [sessionName, windowIndex, windowName, windowActive, windowPanes, panePath] = parts;
 
       if (!sessions[sessionName]) {
         sessions[sessionName] = [];
@@ -37,12 +41,38 @@ function getTmuxSessions() {
 
     return sessions;
   } catch (e) {
-    return {};
+    return { error: e.message };
   }
 }
 
 async function showTmuxManagement(lastSessions = null) {
   const sessions = lastSessions || getTmuxSessions();
+
+  // Check for error
+  if (sessions.error) {
+    const result = await renderPage({
+      header: {
+        type: 'section',
+        text: 'Tmux Window Management'
+      },
+      mainArea: {
+        type: 'display',
+        render: () => {
+          console.log(`  \x1b[31m✗ Failed to get tmux sessions: ${sessions.error}\x1b[0m`);
+          console.log('  \x1b[2mMake sure tmux is running\x1b[0m');
+        }
+      },
+      footer: {
+        menu: {
+          options: ['r. Refresh', 'b. Back'],
+          allowLetterKeys: true
+        }
+      }
+    });
+
+    return { action: result.value, sessions: {} };
+  }
+
   const sessionCount = Object.keys(sessions).length;
   let totalWindows = 0;
   let ccbWindows = 0;

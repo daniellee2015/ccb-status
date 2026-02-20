@@ -101,37 +101,58 @@ async function main() {
               }
 
               if (cleanupAction === 'c. Cleanup All' && detection && detection.zombies.length > 0) {
-                console.log('\n  Cleaning up zombie processes...\n');
+                // Confirm before cleanup
+                const readline = require('readline');
+                const rl = readline.createInterface({
+                  input: process.stdin,
+                  output: process.stdout
+                });
 
-                // Call ccb-cleanup to kill zombie daemons
-                const pids = detection.zombies.map(z => z.pid).join(' ');
+                await new Promise((resolve) => {
+                  rl.question(`\n  ⚠️  This will kill ${detection.zombies.length} zombie process(es). Continue? (y/N): `, async (answer) => {
+                    rl.close();
 
-                try {
-                  // Use ccb-cleanup to kill each zombie PID
-                  for (const zombie of detection.zombies) {
-                    try {
-                      execSync(`ccb-cleanup --kill-pid ${zombie.pid}`, {
-                        encoding: 'utf8',
-                        stdio: 'pipe'
-                      });
-                      console.log(`  ✓ Killed PID ${zombie.pid}`);
-                    } catch (e) {
-                      console.log(`  ✗ Failed to kill PID ${zombie.pid}`);
+                    if (answer.trim().toLowerCase() !== 'y') {
+                      console.log('\n  Cleanup cancelled\n');
+                      setTimeout(resolve, 500);
+                      return;
                     }
-                  }
-                  console.log(`\n  Cleanup complete\n`);
-                } catch (e) {
-                  console.log(`\n  ✗ Cleanup failed: ${e.message}\n`);
-                }
 
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                    console.log('\n  Cleaning up zombie processes...\n');
 
-                // Re-detect after cleanup
-                startSpinner('Re-detecting status...');
-                detection = await detectStatus();
-                stopSpinner('Detection complete');
-                console.log('');
-                await new Promise(resolve => setTimeout(resolve, 500));
+                    // Call ccb-cleanup to kill zombie daemons
+                    const pids = detection.zombies.map(z => z.pid).join(' ');
+
+                    try {
+                      // Use ccb-cleanup to kill each zombie PID
+                      for (const zombie of detection.zombies) {
+                        try {
+                          execSync(`ccb-cleanup --kill-pid ${zombie.pid}`, {
+                            encoding: 'utf8',
+                            stdio: 'pipe'
+                          });
+                          console.log(`  ✓ Killed PID ${zombie.pid}`);
+                        } catch (e) {
+                          console.log(`  ✗ Failed to kill PID ${zombie.pid}`);
+                        }
+                      }
+                      console.log(`\n  Cleanup complete\n`);
+                    } catch (e) {
+                      console.log(`\n  ✗ Cleanup failed: ${e.message}\n`);
+                    }
+
+                    await new Promise(resolve2 => setTimeout(resolve2, 1000));
+
+                    // Re-detect after cleanup
+                    startSpinner('Re-detecting status...');
+                    detection = await detectStatus();
+                    stopSpinner('Detection complete');
+                    console.log('');
+                    await new Promise(resolve2 => setTimeout(resolve2, 500));
+
+                    resolve();
+                  });
+                });
               }
 
               if (cleanupAction === 'r. Restart Zombie' && detection && detection.zombies.length > 0) {
@@ -232,24 +253,43 @@ async function main() {
                     }
 
                     if (targetSession && targetWindow !== null) {
-                      try {
-                        execFileSync('tmux', ['kill-window', '-t', `${targetSession}:${targetWindow}`], {
-                          encoding: 'utf8',
-                          stdio: 'pipe'
-                        });
-                        console.log(`\n  ✓ Killed window ${targetSession}:${targetWindow}\n`);
-                        tmuxSessions = getTmuxSessions();
-                      } catch (e) {
-                        console.log(`\n  ✗ Failed to kill window: ${e.message}\n`);
-                      }
+                      // Confirm before killing
+                      const rl2 = require('readline').createInterface({
+                        input: process.stdin,
+                        output: process.stdout
+                      });
+
+                      rl2.question(`\n  ⚠️  Kill window ${targetSession}:${targetWindow}? (y/N): `, (confirm) => {
+                        rl2.close();
+
+                        if (confirm.trim().toLowerCase() === 'y') {
+                          try {
+                            execFileSync('tmux', ['kill-window', '-t', `${targetSession}:${targetWindow}`], {
+                              encoding: 'utf8',
+                              stdio: 'pipe'
+                            });
+                            console.log(`\n  ✓ Killed window ${targetSession}:${targetWindow}\n`);
+                            tmuxSessions = getTmuxSessions();
+                          } catch (e) {
+                            console.log(`\n  ✗ Failed to kill window: ${e.message}\n`);
+                          }
+                        } else {
+                          console.log('\n  Cancelled\n');
+                        }
+
+                        setTimeout(resolve, 1000);
+                      });
                     } else {
                       console.log('\n  ✗ Invalid window number\n');
+                      setTimeout(resolve, 1000);
                     }
                   } else {
                     console.log('\n  ✗ Invalid window number\n');
+                    setTimeout(resolve, 1000);
                   }
+                } else {
+                  setTimeout(resolve, 500);
                 }
-                setTimeout(resolve, 1000);
               });
             });
             continue;
@@ -269,21 +309,39 @@ async function main() {
                 if (answer.trim()) {
                   const sessionName = answer.trim();
                   if (tmuxSessions[sessionName]) {
-                    try {
-                      execFileSync('tmux', ['kill-session', '-t', sessionName], {
-                        encoding: 'utf8',
-                        stdio: 'pipe'
-                      });
-                      console.log(`\n  ✓ Killed session ${sessionName}\n`);
-                      tmuxSessions = getTmuxSessions();
-                    } catch (e) {
-                      console.log(`\n  ✗ Failed to kill session: ${e.message}\n`);
-                    }
+                    // Confirm before killing
+                    const rl2 = require('readline').createInterface({
+                      input: process.stdin,
+                      output: process.stdout
+                    });
+
+                    rl2.question(`\n  ⚠️  Kill entire session "${sessionName}"? This will close all windows. (y/N): `, (confirm) => {
+                      rl2.close();
+
+                      if (confirm.trim().toLowerCase() === 'y') {
+                        try {
+                          execFileSync('tmux', ['kill-session', '-t', sessionName], {
+                            encoding: 'utf8',
+                            stdio: 'pipe'
+                          });
+                          console.log(`\n  ✓ Killed session ${sessionName}\n`);
+                          tmuxSessions = getTmuxSessions();
+                        } catch (e) {
+                          console.log(`\n  ✗ Failed to kill session: ${e.message}\n`);
+                        }
+                      } else {
+                        console.log('\n  Cancelled\n');
+                      }
+
+                      setTimeout(resolve, 1000);
+                    });
                   } else {
                     console.log('\n  ✗ Session not found\n');
+                    setTimeout(resolve, 1000);
                   }
+                } else {
+                  setTimeout(resolve, 500);
                 }
-                setTimeout(resolve, 1000);
               });
             });
             continue;
