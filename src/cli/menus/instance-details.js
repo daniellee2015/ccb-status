@@ -41,11 +41,14 @@ async function showInstanceDetails(instance) {
         console.log('\n  LLM Sessions:');
         const llms = instance.llmStatus || defaultStatus;
         // Sanitize session text to remove newlines
-        const sanitize = (text) => text ? text.replace(/[\r\n]+/g, ' ') : '';
-        console.log(`    Claude:     ${llms.claude.active ? '\x1b[32m✓ Active\x1b[0m' : '\x1b[90m✗ Inactive\x1b[0m'} ${sanitize(llms.claude.session || '')}`);
-        console.log(`    Gemini:     ${llms.gemini.active ? '\x1b[32m✓ Active\x1b[0m' : '\x1b[90m✗ Inactive\x1b[0m'} ${sanitize(llms.gemini.session || '')}`);
-        console.log(`    OpenCode:   ${llms.opencode.active ? '\x1b[32m✓ Active\x1b[0m' : '\x1b[90m✗ Inactive\x1b[0m'} ${sanitize(llms.opencode.session || '')}`);
-        console.log(`    Codex:      ${llms.codex.active ? '\x1b[32m✓ Active\x1b[0m' : '\x1b[90m✗ Inactive\x1b[0m'} ${sanitize(llms.codex.session || '')}`);
+        const formatLLM = (llm) => {
+          if (!llm.active) return '\x1b[90m✗ Inactive\x1b[0m';
+          return `\x1b[32m✓ Active\x1b[0m (${llm.lastActive || 'unknown'})`;
+        };
+        console.log(`    Claude:     ${formatLLM(llms.claude)}`);
+        console.log(`    Gemini:     ${formatLLM(llms.gemini)}`);
+        console.log(`    OpenCode:   ${formatLLM(llms.opencode)}`);
+        console.log(`    Codex:      ${formatLLM(llms.codex)}`);
 
         console.log('\n  Files:');
         console.log(`    State:      ${instance.stateFile}`);

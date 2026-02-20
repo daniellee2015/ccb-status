@@ -48,10 +48,10 @@ function getTmuxPaneId(workDir) {
  */
 function getLLMStatus(workDir) {
   const status = {
-    claude: { active: false, session: null },
-    gemini: { active: false, session: null },
-    opencode: { active: false, session: null },
-    codex: { active: false, session: null }
+    claude: { active: false, session: null, lastActive: null },
+    gemini: { active: false, session: null, lastActive: null },
+    opencode: { active: false, session: null, lastActive: null },
+    codex: { active: false, session: null, lastActive: null }
   };
 
   try {
@@ -72,9 +72,38 @@ function getLLMStatus(workDir) {
       if (fs.existsSync(sessionFile)) {
         try {
           const content = fs.readFileSync(sessionFile, 'utf8').trim();
+          const stats = fs.statSync(sessionFile);
+
           if (content) {
             status[llm].active = true;
-            status[llm].session = content.substring(0, 20) + '...';
+
+            // Get last modified time
+            const lastModified = stats.mtime;
+            const now = new Date();
+            const diffMs = now - lastModified;
+            const diffMins = Math.floor(diffMs / (1000 * 60));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+            if (diffMins < 1) {
+              status[llm].lastActive = 'just now';
+            } else if (diffMins < 60) {
+              status[llm].lastActive = `${diffMins}m ago`;
+            } else if (diffHours < 24) {
+              status[llm].lastActive = `${diffHours}h ago`;
+            } else {
+              const diffDays = Math.floor(diffHours / 24);
+              status[llm].lastActive = `${diffDays}d ago`;
+            }
+
+            // Try to parse as JSON and extract session_id (for reference)
+            try {
+              const sessionData = JSON.parse(content);
+              if (sessionData.session_id) {
+                status[llm].session = sessionData.session_id;
+              }
+            } catch (e) {
+              // Not JSON, ignore
+            }
           }
         } catch (e) {
           // Skip
