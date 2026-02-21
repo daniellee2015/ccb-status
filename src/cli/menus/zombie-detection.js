@@ -4,40 +4,53 @@
  */
 
 const { renderPage } = require('cli-menu-kit');
+const { tc } = require('../../i18n');
 
 async function showZombieDetection(lastDetection = null) {
   const result = await renderPage({
     header: {
       type: 'section',
-      text: 'CCB Instance Management'
+      text: tc('zombieDetection.title')
     },
     mainArea: {
       type: 'display',
       render: () => {
         if (!lastDetection) {
+          console.log(`  \x1b[2m${tc('zombieDetection.detectPrompt')}\x1b[0m`);
+          console.log('');
+          console.log(`  \x1b[36m${tc('cleanup.scenarioGuide')}\x1b[0m`);
+          console.log(`    \x1b[2m• ${tc('cleanup.zombieScenario')}\x1b[0m`);
+          console.log(`    \x1b[2m• ${tc('cleanup.deadScenario')}\x1b[0m`);
           return;
         }
 
         // Show detection results
-        console.log('  Status Summary:');
-        console.log(`    \x1b[32m✓ Active:  ${lastDetection.active.length}\x1b[0m`);
-        console.log(`    \x1b[33m⚠ Zombie:  ${lastDetection.zombies.length}\x1b[0m`);
-        console.log(`    \x1b[90m✗ Dead:    ${lastDetection.dead.length}\x1b[0m`);
+        console.log(`  ${tc('zombieDetection.statusSummary')}`);
+        console.log(`    \x1b[32m${tc('cleanup.active', { count: lastDetection.active.length })}\x1b[0m`);
+        console.log(`    \x1b[33m${tc('cleanup.zombie', { count: lastDetection.zombies.length })}\x1b[0m`);
+        console.log(`    \x1b[90m${tc('cleanup.dead', { count: lastDetection.dead.length })}\x1b[0m`);
         console.log('');
 
-        if (lastDetection.zombies.length === 0) {
-          console.log('  \x1b[32m✓ All instances are healthy\x1b[0m');
+        if (lastDetection.zombies.length === 0 && lastDetection.dead.length === 0) {
+          console.log(`  \x1b[32m${tc('zombieDetection.allHealthy')}\x1b[0m`);
         } else {
-          console.log(`  \x1b[33m⚠ Found ${lastDetection.zombies.length} zombie process(es)\x1b[0m`);
+          if (lastDetection.zombies.length > 0) {
+            console.log(`  \x1b[33m${tc('zombieDetection.foundZombies', { count: lastDetection.zombies.length })}\x1b[0m`);
+          }
+          if (lastDetection.dead.length > 0) {
+            console.log(`  \x1b[90m${tc('zombieDetection.foundDead', { count: lastDetection.dead.length })}\x1b[0m`);
+          }
         }
       }
     },
     footer: {
       menu: {
         options: [
-          'd. Detect Status',
-          'c. Cleanup Zombie Processes',
-          'b. Back'
+          `d. ${tc('zombieDetection.detectStatus')}`,
+          `z. ${tc('cleanup.restartZombie')}`,
+          `r. ${tc('cleanup.restartDead')}`,
+          `c. ${tc('zombieDetection.cleanup')}`,
+          `b. ${tc('zombieDetection.back')}`
         ],
         allowLetterKeys: true
       }

@@ -5,38 +5,43 @@
 
 const { renderPage, renderTable } = require('cli-menu-kit');
 const { getCCBInstances } = require('../../services/instance-service');
+const { tc } = require('../../i18n');
 const path = require('path');
 
 async function showCleanup(lastDetection = null) {
   const result = await renderPage({
     header: {
       type: 'section',
-      text: 'Cleanup Zombie Processes'
+      text: tc('cleanup.title')
     },
     mainArea: {
       type: 'display',
       render: () => {
         if (!lastDetection) {
           // No detection yet, show prompt
-          console.log('  \x1b[2mPress "d" to detect zombie processes and view cleanup options\x1b[0m');
+          console.log(`  \x1b[2m${tc('cleanup.detectPrompt')}\x1b[0m`);
+          console.log('');
+          console.log(`  \x1b[36m${tc('cleanup.scenarioGuide')}\x1b[0m`);
+          console.log(`    \x1b[2m• ${tc('cleanup.zombieScenario')}\x1b[0m`);
+          console.log(`    \x1b[2m• ${tc('cleanup.deadScenario')}\x1b[0m`);
           return;
         }
 
         const { active, zombies, dead } = lastDetection;
 
         // Show detection summary
-        console.log('  Status Detection:');
-        console.log(`    \x1b[32m✓ Active:  ${active.length}\x1b[0m`);
-        console.log(`    \x1b[33m⚠ Zombie:  ${zombies.length}\x1b[0m`);
-        console.log(`    \x1b[90m✗ Dead:    ${dead.length}\x1b[0m`);
+        console.log(`  ${tc('cleanup.statusDetection')}`);
+        console.log(`    \x1b[32m${tc('cleanup.active', { count: active.length })}\x1b[0m`);
+        console.log(`    \x1b[33m${tc('cleanup.zombie', { count: zombies.length })}\x1b[0m`);
+        console.log(`    \x1b[90m${tc('cleanup.dead', { count: dead.length })}\x1b[0m`);
         console.log('');
 
         if (zombies.length === 0) {
-          console.log('  \x1b[32m✓ No zombie processes found. All instances are healthy.\x1b[0m');
+          console.log(`  \x1b[32m${tc('cleanup.noZombies')}\x1b[0m`);
           return;
         }
 
-        console.log(`  \x1b[33m⚠ Found ${zombies.length} zombie process(es) that need cleanup:\x1b[0m`);
+        console.log(`  \x1b[33m${tc('cleanup.foundZombies', { count: zombies.length })}\x1b[0m`);
         console.log('');
 
         // Prepare table data
@@ -83,11 +88,7 @@ async function showCleanup(lastDetection = null) {
     },
     footer: {
       menu: {
-        options: !lastDetection
-          ? ['d. Detect Status', 'b. Back']
-          : lastDetection.zombies.length > 0
-            ? ['d. Re-detect', 'c. Cleanup All', 'r. Restart Zombie', 'b. Back']
-            : ['d. Re-detect', 'b. Back'],
+        options: [`d. ${tc('cleanup.detectStatus')}`, `z. ${tc('cleanup.restartZombie')}`, `r. ${tc('cleanup.restartDead')}`, `c. ${tc('cleanup.cleanupAll')}`, `b. ${tc('cleanup.back')}`],
         allowLetterKeys: true,
         preserveOnSelect: true
       }

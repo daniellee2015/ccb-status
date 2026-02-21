@@ -6,83 +6,110 @@
 const { renderPage, renderTable } = require('cli-menu-kit');
 const { execSync } = require('child_process');
 const { getCCBInstances } = require('../../services/instance-service');
+const { tc } = require('../../i18n');
 const path = require('path');
 
 /**
  * Get all tmux sessions and windows, with CCB daemon mapping
  * @param {boolean} onlyAttached - Only show attached sessions
  */
+/**
+ * Get all tmux sessions with CCB daemon mapping
+ * @param {boolean} onlyAttached - Only show attached sessions
+ */
 async function getTmuxSessions(onlyAttached = true) {
   try {
     // Get CCB instances first
     const ccbInstances = await getCCBInstances();
-    const tmuxToDaemon = {};
 
-    // Map tmux panes to daemons
-    for (const instance of ccbInstances) {
-      if (instance.tmuxPane && instance.tmuxPane.id) {
-        // Extract session name from pane ID (e.g., %1 -> session that contains it)
-        // We'll match by work directory instead
-        tmuxToDaemon[instance.workDir] = {
-          pid: instance.pid,
-          status: instance.status,
-          project: path.basename(instance.workDir)
-        };
+    // First, get list of attached sessions if needed
+    const attachedSessions = new Set();
+    if (onlyAttached) {
+      const sessionsResult = execSync('tmux list-sessions -F "#{session_name}\t#{session_attached}"', {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+      for (const line of sessionsResult.split('\n')) {
+        if (!line) continue;
+        const [name, attached] = line.split('\t');
+        if (attached === '1') {
+          attachedSessions.add(name);
+        }
       }
     }
 
-    // Get session info first
-    const sessionsResult = execSync('tmux list-sessions -F "#{session_name}\t#{session_attached}"', {
-      encoding: 'utf8',
-      timeout: 2000
-    });
+    // Build a map: for each active CCB, find which session it's in
+    const sessionToCCB = {};
 
-    const sessionInfo = {};
-    for (const line of sessionsResult.split('\n')) {
-      if (!line) continue;
-      const [name, attached] = line.split('\t');
-      sessionInfo[name] = attached === '1';
+    for (const instance of ccbInstances) {
+      const projectName = path.basename(instance.workDir);
+
+      // Get all panes and find the one with matching "Ready (project-name)" title
+      try {
+        const panesResult = execSync('tmux list-panes -a -F "#{session_name}\t#{pane_id}\t#{pane_title}"', {
+          encoding: 'utf8',
+          timeout: 2000
+        });
+
+        for (const line of panesResult.split('\n')) {
+          if (!line) continue;
+          const [sessionName, paneId, paneTitle] = line.split('\t');
+
+          // Match "Ready (project-name)" for this specific CCB instance
+          if (paneTitle && paneTitle.includes(`Ready (${projectName})`)) {
+            // If we're filtering by attached, only consider attached sessions
+            if (onlyAttached && !attachedSessions.has(sessionName)) {
+              continue;
+            }
+
+            sessionToCCB[sessionName] = {
+              pid: instance.pid,
+              status: instance.status,
+              project: projectName,
+              workDir: instance.workDir
+            };
+            break; // Found the session for this daemon
+          }
+        }
+      } catch (e) {
+        // Ignore errors in pane listing
+      }
     }
 
-    // Get windows info with pane paths
-    const result = execSync('tmux list-windows -a -F "#{session_name}\t#{window_index}\t#{window_name}\t#{window_active}\t#{window_panes}\t#{pane_current_path}"', {
+    // Get session info with window and pane counts
+    const sessionsResult = execSync('tmux list-sessions -F "#{session_name}\t#{session_attached}\t#{session_windows}"', {
       encoding: 'utf8',
       timeout: 2000
     });
 
     const sessions = {};
-    for (const line of result.split('\n')) {
+    for (const line of sessionsResult.split('\n')) {
       if (!line) continue;
-      const parts = line.split('\t');
-
-      if (parts.length < 6) continue;
-
-      const [sessionName, windowIndex, windowName, windowActive, windowPanes, panePath] = parts;
+      const [name, attached, windowCount] = line.split('\t');
 
       // Filter by attached status if requested
-      if (onlyAttached && !sessionInfo[sessionName]) {
+      if (onlyAttached && attached !== '1') {
         continue;
       }
 
-      if (!sessions[sessionName]) {
-        sessions[sessionName] = {
-          attached: sessionInfo[sessionName] || false,
-          windows: []
-        };
+      // Count total panes in this session
+      let paneCount = 0;
+      try {
+        const paneResult = execSync(`tmux list-panes -t ${name} -s`, {
+          encoding: 'utf8',
+          timeout: 2000
+        });
+        paneCount = paneResult.split('\n').filter(l => l).length;
+      } catch (e) {
+        paneCount = parseInt(windowCount) || 1;
       }
 
-      // Check if this window is running CCB
-      const ccbInfo = tmuxToDaemon[panePath];
-
-      sessions[sessionName].windows.push({
-        index: windowIndex,
-        name: windowName,
-        active: windowActive === '1',
-        panes: parseInt(windowPanes) || 1,
-        path: panePath,
-        isCCB: !!ccbInfo,
-        ccbInfo: ccbInfo || null
-      });
+      sessions[name] = {
+        attached: attached === '1',
+        windowCount: parseInt(windowCount) || 1,
+        paneCount: paneCount,
+        ccbInfo: sessionToCCB[name] || null
+      };
     }
 
     return sessions;
@@ -99,18 +126,18 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
     const result = await renderPage({
       header: {
         type: 'section',
-        text: 'Tmux Window Management'
+        text: tc('tmuxManagement.title')
       },
       mainArea: {
         type: 'display',
         render: () => {
-          console.log(`  \x1b[31m✗ Failed to get tmux sessions: ${sessions.error}\x1b[0m`);
-          console.log('  \x1b[2mMake sure tmux is running\x1b[0m');
+          console.log(`  \x1b[31m${tc('tmuxManagement.failedToGet', { error: sessions.error })}\x1b[0m`);
+          console.log(`  \x1b[2m${tc('tmuxManagement.makeSureTmux')}\x1b[0m`);
         }
       },
       footer: {
         menu: {
-          options: ['r. Refresh', 'b. Back'],
+          options: [`r. ${tc('tmuxManagement.refresh')}`, `b. ${tc('tmuxManagement.back')}`],
           allowLetterKeys: true
         }
       }
@@ -121,35 +148,36 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
 
   const sessionCount = Object.keys(sessions).length;
   let totalWindows = 0;
-  let ccbWindows = 0;
+  let totalPanes = 0;
+  let ccbSessions = 0;
   let attachedCount = 0;
 
   for (const [sessionName, sessionData] of Object.entries(sessions)) {
     if (sessionData.attached) attachedCount++;
-    totalWindows += sessionData.windows.length;
-    ccbWindows += sessionData.windows.filter(w => w.isCCB).length;
+    totalWindows += sessionData.windowCount;
+    totalPanes += sessionData.paneCount;
+    if (sessionData.ccbInfo) ccbSessions++;
   }
 
   const result = await renderPage({
     header: {
       type: 'section',
-      text: 'Tmux Session Management'
+      text: `${tc('tmuxManagement.title')} ${showAll ? tc('tmuxManagement.allSessions') : tc('tmuxManagement.attachedOnly')}`
     },
     mainArea: {
       type: 'display',
       render: () => {
         if (sessionCount === 0) {
-          console.log('  \x1b[33m⚠ No tmux sessions found\x1b[0m');
+          console.log(`  \x1b[33m${tc('tmuxManagement.noSessions')}\x1b[0m`);
           return;
         }
 
-        console.log('  Session Overview:');
-        console.log(`    Total Sessions: ${sessionCount} (${attachedCount} attached)`);
-        console.log(`    Total Windows: ${totalWindows}`);
-        console.log(`    Running CCB: \x1b[32m${ccbWindows}\x1b[0m`);
-        console.log(`    View: ${showAll ? 'All sessions' : 'Attached only'}`);
-        console.log('');
-        console.log('  \x1b[2mStructure: Session → Window → Panes\x1b[0m');
+        console.log(`  ${tc('tmuxManagement.sessionOverview')}`);
+        console.log(`    ${tc('tmuxManagement.totalSessions', { count: sessionCount, attached: attachedCount })}`);
+        console.log(`    ${tc('tmuxManagement.totalWindows', { count: totalWindows })}`);
+        console.log(`    ${tc('tmuxManagement.totalPanes', { count: totalPanes })}`);
+        console.log(`    ${tc('tmuxManagement.runningCCB', { count: ccbSessions })}`);
+        console.log(`    ${tc('tmuxManagement.view', { mode: showAll ? tc('tmuxManagement.viewAll') : tc('tmuxManagement.viewAttached') })}`);
         console.log('');
 
         // Prepare table data
@@ -157,24 +185,18 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
         let rowNum = 1;
 
         for (const [sessionName, sessionData] of Object.entries(sessions)) {
-          for (const window of sessionData.windows) {
-            const windowDisplay = window.active
-              ? `${window.index}:${window.name} ●`
-              : `${window.index}:${window.name}`;
-
-            let ccbDisplay = '-';
-            if (window.ccbInfo) {
-              ccbDisplay = `PID ${window.ccbInfo.pid} [${window.ccbInfo.status}]`;
-            }
-
-            tableData.push({
-              no: rowNum++,
-              session: sessionName + (sessionData.attached ? ' *' : ''),
-              window: windowDisplay,
-              panes: window.panes,
-              ccb: ccbDisplay
-            });
+          let ccbDisplay = '-';
+          if (sessionData.ccbInfo) {
+            ccbDisplay = `PID ${sessionData.ccbInfo.pid} [${sessionData.ccbInfo.status}]`;
           }
+
+          tableData.push({
+            no: rowNum++,
+            session: sessionName + (sessionData.attached ? ' *' : ''),
+            windows: sessionData.windowCount,
+            panes: sessionData.paneCount,
+            ccb: ccbDisplay
+          });
         }
 
         // Render table
@@ -182,7 +204,7 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
           columns: [
             { header: '#', key: 'no', align: 'center', width: 4 },
             { header: 'Tmux Session', key: 'session', align: 'left', width: 15 },
-            { header: 'Window (Index:Name)', key: 'window', align: 'left', width: 25 },
+            { header: 'Windows', key: 'windows', align: 'center', width: 9 },
             { header: 'Panes', key: 'panes', align: 'center', width: 7 },
             { header: 'CCB Daemon', key: 'ccb', align: 'left', width: 22 }
           ],
@@ -193,14 +215,14 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
         });
 
         console.log('');
-        console.log('  \x1b[2m* = attached | ● = active window | [active/zombie] = daemon status\x1b[0m');
+        console.log(`  \x1b[2m${tc('tmuxManagement.legend')}\x1b[0m`);
       }
     },
     footer: {
       menu: {
         options: sessionCount > 0
-          ? ['r. Refresh', 'a. Toggle All/Attached', 'k. Kill Window', 's. Kill Session', 'b. Back']
-          : ['r. Refresh', 'b. Back'],
+          ? [`r. ${tc('tmuxManagement.refresh')}`, `a. ${tc('tmuxManagement.toggleAll')}`, `k. ${tc('tmuxManagement.killWindow')}`, `s. ${tc('tmuxManagement.killSession')}`, `b. ${tc('tmuxManagement.back')}`]
+          : [`r. ${tc('tmuxManagement.refresh')}`, `b. ${tc('tmuxManagement.back')}`],
         allowLetterKeys: true
       }
     }
