@@ -1,12 +1,12 @@
 /**
- * Zombie Detection Menu
- * Level 2 - Zombie detection and cleanup options
+ * Instance Management Menu
+ * Level 2 - Manage CCB instances (detect, restart, cleanup)
  */
 
 const { renderPage } = require('cli-menu-kit');
 const { tc } = require('../../i18n');
 
-async function showZombieDetection(lastDetection = null) {
+async function showInstanceManagement(lastDetection = null) {
   const result = await renderPage({
     header: {
       type: 'section',
@@ -60,4 +60,4 @@ async function showZombieDetection(lastDetection = null) {
   return result.value;
 }
 
-module.exports = { showZombieDetection };
+module.exports = { showInstanceManagement };

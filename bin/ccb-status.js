@@ -11,7 +11,7 @@ const { showInstanceDetails } = require('../src/cli/menus/instance-details');
 const { showRestartZombie } = require('../src/cli/menus/restart-zombie');
 const { showRestartDead } = require('../src/cli/menus/restart-dead');
 const { showHistory } = require('../src/cli/menus/history');
-const { showZombieDetection } = require('../src/cli/menus/zombie-detection');
+const { showInstanceManagement } = require('../src/cli/menus/instance-management');
 const { showCleanup, detectStatus } = require('../src/cli/menus/cleanup');
 const { showTmuxManagement, getTmuxSessions } = require('../src/cli/menus/tmux-management');
 const { showLanguageSettings } = require('../src/cli/menus/language-settings');
@@ -51,10 +51,10 @@ async function main() {
         await new Promise(resolve => setTimeout(resolve, 1000));
         break;
 
-      case 3: // Zombie Detection
+      case 3: // Instance Management
         let detectionResult = null;
         while (true) {
-          const action = await showZombieDetection(detectionResult);
+          const action = await showInstanceManagement(detectionResult);
           if (action === 'b. Back') break;
 
           if (action === 'd. Detect Status') {
