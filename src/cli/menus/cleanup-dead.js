@@ -103,7 +103,8 @@ async function showCleanupDead() {
 
   const checkboxResult = await menu.checkbox({
     prompt: tc('cleanupDead.selectInstances'),
-    options: checkboxOptions
+    options: checkboxOptions,
+    minSelections: 1
   });
 
   if (!checkboxResult || !checkboxResult.indices || checkboxResult.indices.length === 0) {

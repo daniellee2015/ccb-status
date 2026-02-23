@@ -96,6 +96,9 @@ async function showKillActive() {
 
   console.log('[DEBUG] User selected:', result.value);
   console.log('[DEBUG] Showing checkbox menu...');
+  console.log('');
+  console.log('  \x1b[33mℹ Use ↑↓ to navigate, Space to select/deselect, Enter to confirm\x1b[0m');
+  console.log('');
 
   // Show checkbox menu for selection
   const checkboxOptions = activeInstances.map((inst, idx) => {
@@ -107,7 +110,8 @@ async function showKillActive() {
 
   const checkboxResult = await menu.checkbox({
     prompt: tc('killActive.selectInstances'),
-    options: checkboxOptions
+    options: checkboxOptions,
+    minSelections: 1  // Require at least one selection
   });
 
   console.log('[DEBUG] Checkbox result:', checkboxResult);
