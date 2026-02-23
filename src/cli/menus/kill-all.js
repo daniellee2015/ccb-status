@@ -33,7 +33,7 @@ async function showKillAll() {
         }
       }
     });
-    return result.value;
+    return 'back';
   }
 
   // Show all instances and let user select

@@ -34,7 +34,7 @@ async function showCleanupZombie() {
         }
       }
     });
-    return result.value;
+    return 'back';
   }
 
   // Show zombie instances and let user select

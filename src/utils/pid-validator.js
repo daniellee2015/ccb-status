@@ -47,12 +47,8 @@ async function validatePid(pid, expectedWorkDir) {
 
     const processInfo = lines[0];
 
-    // Check if it's a node process (CCB runs on Node.js)
-    if (!processInfo.includes('node') && !processInfo.includes('Node')) {
-      return { valid: false, reason: 'Not a Node.js process' };
-    }
-
     // Check if command line contains CCB-related keywords
+    // Note: CCB askd daemon can be Python or Node.js process
     const isCCBProcess = processInfo.includes('ccb') ||
                          processInfo.includes('askd') ||
                          processInfo.includes('claude-code-bridge');

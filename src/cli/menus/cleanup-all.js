@@ -34,7 +34,7 @@ async function showCleanupAll() {
         }
       }
     });
-    return result.value;
+    return 'back';
   }
 
   // Show all instances and let user select

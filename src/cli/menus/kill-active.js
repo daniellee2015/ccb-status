@@ -33,7 +33,7 @@ async function showKillActive() {
         }
       }
     });
-    return result.value;
+    return 'back';
   }
 
   // Show active instances and let user select

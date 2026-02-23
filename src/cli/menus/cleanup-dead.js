@@ -34,7 +34,7 @@ async function showCleanupDead() {
         }
       }
     });
-    return result.value;
+    return 'back';
   }
 
   // Show dead instances and let user select
