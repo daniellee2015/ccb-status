@@ -40,7 +40,9 @@ module.exports = {
     status: {
       active: '✓ 活动',
       zombie: '⚠ 僵尸',
-      dead: '✗ 死亡'
+      dead: '✗ 已停止',
+      orphaned: '⊙ 后台残留',
+      removed: '⊗ 已删除'
     },
     type: {
       ccb: '[CCB]',
@@ -121,11 +123,13 @@ module.exports = {
     title: 'CCB 实例管理',
     statusSummary: '状态摘要：',
     active: '✓ 活动：  {count}',
+    orphaned: '⊙ 后台残留：  {count}',
     zombie: '⚠ 僵尸：  {count}',
-    dead: '✗ 死亡：  {count}',
+    dead: '✗ 已停止：  {count}',
     allHealthy: '✓ 所有实例都健康',
+    foundOrphaned: '⊙ 发现 {count} 个后台残留进程（窗口已关闭）',
     foundZombies: '⚠ 发现 {count} 个僵尸实例',
-    foundDead: '✗ 发现 {count} 个死亡实例',
+    foundDead: '✗ 发现 {count} 个已停止实例',
 
     // Menu scenarios
     killScenario: '永久停止 CCB（切换项目、释放资源）',

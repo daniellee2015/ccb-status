@@ -101,11 +101,12 @@ async function showCleanup(lastDetection = null) {
 async function detectStatus() {
   const instances = await getCCBInstances();
 
-  const zombies = instances.filter(inst => inst.status === 'zombie');
   const active = instances.filter(inst => inst.status === 'active');
+  const orphaned = instances.filter(inst => inst.status === 'orphaned');
+  const zombies = instances.filter(inst => inst.status === 'zombie');
   const dead = instances.filter(inst => inst.status === 'dead');
 
-  return { active, zombies, dead };
+  return { active, orphaned, zombies, dead };
 }
 
 module.exports = { showCleanup, detectStatus };

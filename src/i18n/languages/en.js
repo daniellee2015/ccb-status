@@ -40,7 +40,9 @@ module.exports = {
     status: {
       active: '✓ Active',
       zombie: '⚠ Zombie',
-      dead: '✗ Dead'
+      dead: '✗ Dead',
+      orphaned: '⊙ Orphaned',
+      removed: '⊗ Removed'
     },
     type: {
       ccb: '[CCB]',

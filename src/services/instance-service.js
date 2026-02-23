@@ -197,16 +197,24 @@ async function getCCBInstances() {
       const host = data.host || '127.0.0.1';
       const workDir = data.work_dir || projectDir;
 
-      // Determine status: Active, Zombie, or Dead
+      // Determine status: Active, Orphaned, Zombie, or Dead
       let status = 'dead';
       let isAlive = false;
+      const tmuxPane = getTmuxPaneInfo(workDir);
 
       if (isPidAlive(pid)) {
         // PID exists, check if port is listening
         const portListening = await isPortListening(port, host);
         if (portListening) {
-          status = 'active';
-          isAlive = true;
+          // Process running and port listening
+          // Check if there's a corresponding tmux window
+          if (tmuxPane) {
+            status = 'active';  // Has tmux window, truly active
+            isAlive = true;
+          } else {
+            status = 'orphaned';  // No tmux window, orphaned process
+            isAlive = false;
+          }
         } else {
           status = 'zombie';
           isAlive = false; // Zombie is considered not alive
@@ -227,7 +235,7 @@ async function getCCBInstances() {
         startedAt: data.started_at,
         parentPid: data.parent_pid,
         managed: data.managed,
-        tmuxPane: getTmuxPaneInfo(workDir),
+        tmuxPane: tmuxPane,
         llmStatus: getLLMStatus(workDir),
         uptime: getUptime(data.started_at)
       });
