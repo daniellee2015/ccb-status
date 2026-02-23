@@ -113,11 +113,11 @@ async function showCleanupDead() {
   // Confirm before cleanup
   const selectedInstances = checkboxResult.indices.map(idx => deadInstances[idx]);
   const confirmResult = await menu.boolean({
-    message: tc('cleanupDead.confirmCleanup', { count: selectedInstances.length }),
-    default: false
+    question: tc('cleanupDead.confirmCleanup', { count: selectedInstances.length }),
+    defaultValue: false
   });
 
-  if (!confirmResult) {
+  if (!confirmResult.value) {
     return 'back';
   }
 

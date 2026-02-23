@@ -30,9 +30,9 @@ async function validatePid(pid, expectedWorkDir) {
     }
 
     // Get process info using ps command
-    // Check cmdline and cwd to ensure it's a CCB process
+    // Check cmdline to ensure it's a CCB process
     const psOutput = execSync(
-      `ps -p ${pid} -o command=,cwd= 2>/dev/null || true`,
+      `ps -p ${pid} -o command= 2>/dev/null || true`,
       { encoding: 'utf8', timeout: 2000 }
     ).trim();
 
@@ -40,32 +40,14 @@ async function validatePid(pid, expectedWorkDir) {
       return { valid: false, reason: 'Cannot get process info' };
     }
 
-    const lines = psOutput.split('\n');
-    if (lines.length === 0) {
-      return { valid: false, reason: 'Process not found' };
-    }
-
-    const processInfo = lines[0];
-
     // Check if command line contains CCB-related keywords
     // Note: CCB askd daemon can be Python or Node.js process
-    const isCCBProcess = processInfo.includes('ccb') ||
-                         processInfo.includes('askd') ||
-                         processInfo.includes('claude-code-bridge');
+    const isCCBProcess = psOutput.includes('ccb') ||
+                         psOutput.includes('askd') ||
+                         psOutput.includes('claude-code-bridge');
 
     if (!isCCBProcess) {
       return { valid: false, reason: 'Not a CCB process' };
-    }
-
-    // Validate work directory if provided
-    if (expectedWorkDir) {
-      const normalizedExpected = path.resolve(expectedWorkDir);
-
-      // Check if process cwd matches expected work directory
-      // Note: ps output format varies, so we do a contains check
-      if (!processInfo.includes(normalizedExpected)) {
-        return { valid: false, reason: 'Work directory mismatch' };
-      }
     }
 
     return { valid: true };

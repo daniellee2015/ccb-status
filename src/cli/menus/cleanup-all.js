@@ -120,11 +120,11 @@ async function showCleanupAll() {
   // Confirm before cleanup
   const selectedInstances = checkboxResult.indices.map(idx => cleanableInstances[idx]);
   const confirmResult = await menu.boolean({
-    message: tc('cleanupAll.confirmCleanup', { count: selectedInstances.length }),
-    default: false
+    question: tc('cleanupAll.confirmCleanup', { count: selectedInstances.length }),
+    defaultValue: false
   });
 
-  if (!confirmResult) {
+  if (!confirmResult.value) {
     return 'back';
   }
 

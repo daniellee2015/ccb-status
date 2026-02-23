@@ -121,11 +121,11 @@ async function showKillAll() {
   // Confirm before killing
   const selectedInstances = checkboxResult.indices.map(idx => killableInstances[idx]);
   const confirmResult = await menu.boolean({
-    message: tc('killAll.confirmKill', { count: selectedInstances.length }),
-    default: false
+    question: tc('killAll.confirmKill', { count: selectedInstances.length }),
+    defaultValue: false
   });
 
-  if (!confirmResult) {
+  if (!confirmResult.value) {
     return 'back';
   }
 

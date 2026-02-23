@@ -114,11 +114,11 @@ async function showKillZombie() {
   // Confirm before killing
   const selectedInstances = checkboxResult.indices.map(idx => zombieInstances[idx]);
   const confirmResult = await menu.boolean({
-    message: tc('killZombie.confirmKill', { count: selectedInstances.length }),
-    default: false
+    question: tc('killZombie.confirmKill', { count: selectedInstances.length }),
+    defaultValue: false
   });
 
-  if (!confirmResult) {
+  if (!confirmResult.value) {
     return 'back';
   }
 
