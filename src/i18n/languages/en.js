@@ -294,7 +294,8 @@ module.exports = {
     noActive: '✓ No active instances found',
     selectPrompt: 'Select instances to kill:',
     selectInstances: 'Select Active Instances (Space to toggle, Enter to confirm)',
-    confirmKill: 'Kill {count} active instance(s)?',
+    confirmationWarning: 'WARNING: About to kill the following instances',
+    confirmKill: 'Confirm killing {count} active instance(s)?',
     killing: 'Killing instances...',
     killed: 'Killed PID {pid}',
     failed: 'Failed: {error}',
@@ -303,10 +304,12 @@ module.exports = {
     back: 'Back',
     columns: {
       project: 'Project',
+      parent: 'Parent',
       hash: 'Hash',
       type: 'Type',
       pid: 'PID',
-      port: 'Port'
+      port: 'Port',
+      status: 'Status'
     }
   },
 

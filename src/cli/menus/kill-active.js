@@ -5,6 +5,9 @@
 
 const { renderPage, renderTable, menu } = require('cli-menu-kit');
 const { getCCBInstances } = require('../../services/instance-service');
+const { getHistory } = require('../../services/history-service');
+const { formatInstanceName } = require('../../services/display-formatter');
+const { displayConfirmationTable } = require('../../services/confirmation-helper');
 const { tc } = require('../../i18n');
 const { safeKillProcess } = require('../../utils/pid-validator');
 const path = require('path');
@@ -13,6 +16,7 @@ async function showKillActive() {
   // Get all instances and filter active
   const instances = await getCCBInstances();
   const activeInstances = instances.filter(inst => inst.status === 'active');
+  const historyMap = getHistory(); // Get history for parent project lookup
 
   if (activeInstances.length === 0) {
     const result = await renderPage({
@@ -50,14 +54,15 @@ async function showKillActive() {
 
         // Prepare table data
         const tableData = activeInstances.map((inst, idx) => {
-          const projectName = path.basename(inst.workDir);
+          const displayName = formatInstanceName(inst, historyMap, 'with-parent');
           const instanceHash = path.basename(path.dirname(inst.stateFile));
           const shortHash = instanceHash.substring(0, 8);
           const type = inst.managed ? '[Multi]' : '[CCB]';
 
           return {
             no: idx + 1,
-            project: projectName,
+            project: displayName.project,
+            parent: displayName.parent,
             hash: shortHash,
             type: type,
             pid: inst.pid,
@@ -69,7 +74,8 @@ async function showKillActive() {
         renderTable({
           columns: [
             { header: '#', key: 'no', align: 'center', width: 4 },
-            { header: tc('killActive.columns.project'), key: 'project', align: 'left', width: 20 },
+            { header: tc('killActive.columns.project'), key: 'project', align: 'left', width: 18 },
+            { header: tc('killActive.columns.parent'), key: 'parent', align: 'left', width: 16 },
             { header: tc('killActive.columns.hash'), key: 'hash', align: 'left', width: 10 },
             { header: tc('killActive.columns.type'), key: 'type', align: 'left', width: 9 },
             { header: tc('killActive.columns.pid'), key: 'pid', align: 'right', width: 8 },
@@ -125,6 +131,14 @@ async function showKillActive() {
   const selectedInstances = checkboxResult.indices.map(idx => activeInstances[idx]);
   console.log('[DEBUG] Selected instances:', selectedInstances.length);
   console.log('[DEBUG] Showing confirmation...');
+
+  // Display detailed confirmation table
+  displayConfirmationTable(
+    selectedInstances,
+    tc('killActive.confirmationWarning'),
+    tc,
+    'killActive.columns'
+  );
 
   const confirmResult = await menu.boolean({
     question: tc('killActive.confirmKill', { count: selectedInstances.length }),

@@ -294,7 +294,8 @@ module.exports = {
     noActive: '✓ 未找到活动实例',
     selectPrompt: '选择要杀死的实例：',
     selectInstances: '选择活动实例（空格切换，回车确认）',
-    confirmKill: '杀死 {count} 个活动实例？',
+    confirmationWarning: '警告：即将杀死以下实例',
+    confirmKill: '确认杀死 {count} 个活动实例？',
     killing: '正在杀死实例...',
     killed: '已杀死 PID {pid}',
     failed: '失败：{error}',
@@ -303,10 +304,12 @@ module.exports = {
     back: '返回',
     columns: {
       project: '项目',
+      parent: '父项目',
       hash: '哈希',
       type: '类型',
       pid: 'PID',
-      port: '端口'
+      port: '端口',
+      status: '状态'
     }
   },
 
