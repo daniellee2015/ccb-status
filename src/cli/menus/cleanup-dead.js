@@ -118,7 +118,7 @@ async function showCleanupDead() {
     defaultValue: false
   });
 
-  if (!confirmResult.value) {
+  if (!confirmResult) {
     return 'back';
   }
 

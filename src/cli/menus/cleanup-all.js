@@ -125,7 +125,7 @@ async function showCleanupAll() {
     defaultValue: false
   });
 
-  if (!confirmResult.value) {
+  if (!confirmResult) {
     return 'back';
   }
 

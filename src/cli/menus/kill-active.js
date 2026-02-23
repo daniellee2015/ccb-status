@@ -133,10 +133,12 @@ async function showKillActive() {
 
   console.log('[DEBUG] Confirm result:', confirmResult);
 
-  if (!confirmResult.value) {
+  if (!confirmResult) {
     console.log('[DEBUG] User cancelled');
     return 'back';
   }
+
+  console.log('[DEBUG] User confirmed, starting kill process...');
 
   // Kill selected instances
   console.log('');
