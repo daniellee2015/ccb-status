@@ -108,6 +108,7 @@ module.exports = {
     columns: {
       number: '#',
       project: 'Project',
+      parent: 'Parent',
       hash: 'Hash',
       status: 'Status',
       type: 'Type',

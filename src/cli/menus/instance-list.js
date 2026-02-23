@@ -11,7 +11,8 @@ const { renderPage } = require('cli-menu-kit');
 const os = require('os');
 const path = require('path');
 const { getCCBInstances } = require('../../services/instance-service');
-const { updateHistory } = require('../../services/history-service');
+const { updateHistory, getHistory } = require('../../services/history-service');
+const { formatInstanceName } = require('../../services/display-formatter');
 const { tc } = require('../../i18n');
 
 async function showInstanceList() {
@@ -19,6 +20,7 @@ async function showInstanceList() {
 
   // Update history with current instances
   updateHistory(instances);
+  const historyMap = getHistory(); // Get full history map for parent lookup
 
   if (instances.length === 0) {
     console.log(`\n  ${tc('instanceList.noInstances')}\n`);
@@ -43,19 +45,8 @@ async function showInstanceList() {
       statusDisplay = tc('instanceList.status.dead');
     }
 
-    // Get project name from work_dir
-    // work_dir format: /path/to/project/.ccb-instances/inst-xxx
-    // We want to extract "project" name
-    let projectName = path.basename(inst.workDir);
-
-    // If workDir contains .ccb-instances, get the parent's parent directory name
-    if (inst.workDir.includes('.ccb-instances')) {
-      const parts = inst.workDir.split(path.sep);
-      const ccbIndex = parts.indexOf('.ccb-instances');
-      if (ccbIndex > 0) {
-        projectName = parts[ccbIndex - 1];
-      }
-    }
+    // Get formatted display name using unified formatter
+    const displayName = formatInstanceName(inst, historyMap, 'full');
 
     // Get instance hash from stateFile path (parent directory name)
     const instanceHash = path.basename(path.dirname(inst.stateFile));
@@ -68,7 +59,7 @@ async function showInstanceList() {
       ? tc('instanceList.type.multi')
       : tc('instanceList.type.ccb');
 
-    return `${idx + 1}. ${projectName} (${shortHash}) [${statusDisplay}] ${type}`;
+    return `${idx + 1}. ${displayName} (${shortHash}) [${statusDisplay}] ${type}`;
   });
 
   // Add 'Back' option to the main menu using i18n

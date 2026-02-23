@@ -4,8 +4,9 @@
  */
 
 const { renderPage, renderTable } = require('cli-menu-kit');
-const { getHistoryArray } = require('../../services/history-service');
+const { getHistoryArray, getHistory } = require('../../services/history-service');
 const { getCCBInstances } = require('../../services/instance-service');
+const { formatInstanceName, formatTmuxDisplay } = require('../../services/display-formatter');
 const { tc } = require('../../i18n');
 const path = require('path');
 const os = require('os');
@@ -13,6 +14,7 @@ const os = require('os');
 async function showHistory() {
   const history = getHistoryArray();
   const currentInstances = await getCCBInstances();
+  const historyMap = getHistory(); // Get full history map for parent lookup
 
   // Create a map of current instances by hash for quick lookup
   const instanceMap = new Map();
@@ -39,7 +41,7 @@ async function showHistory() {
 
         // Prepare table data
         const tableData = history.slice(0, 20).map((record, idx) => {
-          const projectName = path.basename(record.workDir);
+          const displayName = formatInstanceName({ workDir: record.workDir }, historyMap, 'with-parent');
           const shortHash = record.instanceHash.substring(0, 8);
           const type = record.managed ? tc('history.type.multi') : tc('history.type.ccb');
 
@@ -63,15 +65,8 @@ async function showHistory() {
             } else {
               statusDisplay = tc('history.status.dead');
             }
-            // Get tmux pane title if available, truncate if too long
-            if (currentInst.tmuxPane && currentInst.tmuxPane.title) {
-              tmuxPane = currentInst.tmuxPane.title;
-              if (tmuxPane.length > 20) {
-                tmuxPane = tmuxPane.substring(0, 17) + '...';
-              }
-            } else {
-              tmuxPane = '-';
-            }
+            // Get tmux display using unified formatter
+            tmuxPane = formatTmuxDisplay(currentInst);
           } else {
             // Instance removed (not in current instances)
             statusDisplay = tc('history.status.removed');
@@ -79,7 +74,8 @@ async function showHistory() {
 
           return {
             no: idx + 1,
-            project: projectName,
+            project: displayName.project,
+            parent: displayName.parent,
             hash: shortHash,
             status: statusDisplay,
             type: type,
@@ -94,10 +90,11 @@ async function showHistory() {
           columns: [
             { header: tc('history.columns.number'), key: 'no', align: 'center', width: 4 },
             { header: tc('history.columns.project'), key: 'project', align: 'left', width: 18 },
+            { header: tc('history.columns.parent'), key: 'parent', align: 'left', width: 16 },
             { header: tc('history.columns.hash'), key: 'hash', align: 'left', width: 10 },
             { header: tc('history.columns.status'), key: 'status', align: 'left', width: 10 },
             { header: tc('history.columns.type'), key: 'type', align: 'left', width: 9 },
-            { header: tc('history.columns.tmux'), key: 'tmux', align: 'left', width: 22 },
+            { header: tc('history.columns.tmux'), key: 'tmux', align: 'left', width: 20 },
             { header: tc('history.columns.runs'), key: 'runs', align: 'center', width: 6 },
             { header: tc('history.columns.first'), key: 'firstSeen', align: 'left', width: 12 }
           ],

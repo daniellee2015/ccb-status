@@ -6,6 +6,8 @@
 const { renderPage, renderTable } = require('cli-menu-kit');
 const { execSync } = require('child_process');
 const { getCCBInstances } = require('../../services/instance-service');
+const { getHistory } = require('../../services/history-service');
+const { formatInstanceName } = require('../../services/display-formatter');
 const { tc } = require('../../i18n');
 const path = require('path');
 
@@ -120,6 +122,7 @@ async function getTmuxSessions(onlyAttached = true) {
 
 async function showTmuxManagement(lastSessions = null, showAll = false) {
   const sessions = lastSessions || await getTmuxSessions(!showAll);
+  const historyMap = getHistory(); // Get history for parent project lookup
 
   // Check for error
   if (sessions.error) {
@@ -185,9 +188,22 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
         let rowNum = 1;
 
         for (const [sessionName, sessionData] of Object.entries(sessions)) {
-          let ccbDisplay = '-';
+          let pid = '-';
+          let status = '-';
+          let project = '-';
+          let parent = '-';
+
           if (sessionData.ccbInfo) {
-            ccbDisplay = `PID ${sessionData.ccbInfo.pid} [${sessionData.ccbInfo.status}]`;
+            // Format project name using unified formatter
+            const displayName = formatInstanceName(
+              { workDir: sessionData.ccbInfo.workDir },
+              historyMap,
+              'with-parent'
+            );
+            pid = sessionData.ccbInfo.pid.toString();
+            status = sessionData.ccbInfo.status;
+            project = displayName.project;
+            parent = displayName.parent;
           }
 
           tableData.push({
@@ -195,7 +211,10 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
             session: sessionName + (sessionData.attached ? ' *' : ''),
             windows: sessionData.windowCount,
             panes: sessionData.paneCount,
-            ccb: ccbDisplay
+            pid: pid,
+            status: status,
+            project: project,
+            parent: parent
           });
         }
 
@@ -206,7 +225,10 @@ async function showTmuxManagement(lastSessions = null, showAll = false) {
             { header: 'Tmux Session', key: 'session', align: 'left', width: 15 },
             { header: 'Windows', key: 'windows', align: 'center', width: 9 },
             { header: 'Panes', key: 'panes', align: 'center', width: 7 },
-            { header: 'CCB Daemon', key: 'ccb', align: 'left', width: 22 }
+            { header: 'PID', key: 'pid', align: 'left', width: 8 },
+            { header: 'Status', key: 'status', align: 'left', width: 10 },
+            { header: 'Project', key: 'project', align: 'left', width: 18 },
+            { header: 'Parent', key: 'parent', align: 'left', width: 16 }
           ],
           data: tableData,
           showBorders: true,

@@ -108,6 +108,7 @@ module.exports = {
     columns: {
       number: '#',
       project: '项目',
+      parent: '父项目',
       hash: '哈希',
       status: '状态',
       type: '类型',
