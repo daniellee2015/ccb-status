@@ -108,7 +108,7 @@ async function showRestartDead() {
   });
 
   const selectResult = await menu.checkbox({
-    title: tc('restartDead.checkboxTitle'),
+    prompt: tc('restartDead.checkboxTitle'),
     options: checkboxOptions,
     minSelections: 0
   });

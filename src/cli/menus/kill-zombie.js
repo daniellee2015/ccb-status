@@ -103,7 +103,7 @@ async function showKillZombie() {
   });
 
   const checkboxResult = await menu.checkbox({
-    message: tc('killZombie.selectInstances'),
+    prompt: tc('killZombie.selectInstances'),
     options: checkboxOptions
   });
 

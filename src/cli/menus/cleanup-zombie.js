@@ -103,7 +103,7 @@ async function showCleanupZombie() {
   });
 
   const checkboxResult = await menu.checkbox({
-    message: tc('cleanupZombie.selectInstances'),
+    prompt: tc('cleanupZombie.selectInstances'),
     options: checkboxOptions
   });
 

@@ -110,7 +110,7 @@ async function showKillAll() {
   });
 
   const checkboxResult = await menu.checkbox({
-    message: tc('killAll.selectInstances'),
+    prompt: tc('killAll.selectInstances'),
     options: checkboxOptions
   });
 

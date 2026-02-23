@@ -103,7 +103,7 @@ async function showKillActive() {
   });
 
   const checkboxResult = await menu.checkbox({
-    message: tc('killActive.selectInstances'),
+    prompt: tc('killActive.selectInstances'),
     options: checkboxOptions
   });
 
