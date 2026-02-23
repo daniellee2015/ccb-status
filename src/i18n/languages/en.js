@@ -295,7 +295,7 @@ module.exports = {
     selectPrompt: 'Select instances to kill:',
     selectInstances: 'Select Active Instances (Space to toggle, Enter to confirm)',
     confirmationWarning: 'WARNING: About to kill the following instances',
-    confirmKill: 'Confirm killing {count} active instance(s)?',
+    confirmPrompt: 'Confirm killing {count} active instance(s)?',
     killing: 'Killing instances...',
     killed: 'Killed PID {pid}',
     failed: 'Failed: {error}',

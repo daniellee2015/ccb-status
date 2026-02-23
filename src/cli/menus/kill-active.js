@@ -64,59 +64,19 @@ async function showKillActive() {
     return 'back';
   }
 
-  console.log('[DEBUG] User selected:', result.value);
-  console.log('[DEBUG] Showing checkbox menu...');
-  console.log('');
-  console.log('  \x1b[33mℹ Use ↑↓ to navigate, Space to select/deselect, Enter to confirm\x1b[0m');
-  console.log('');
-
   // Show checkbox menu for selection
-  const checkboxOptions = activeInstances.map((inst, idx) => {
-    const projectName = path.basename(inst.workDir);
-    const instanceHash = path.basename(path.dirname(inst.stateFile));
-    const shortHash = instanceHash.substring(0, 8);
-    return `${idx + 1}. ${projectName} (${shortHash}) - PID ${inst.pid}`;
-  });
+  const selectedInstances = await selectInstances(activeInstances, tc, 'killActive.selectInstances');
 
-  const checkboxResult = await menu.checkbox({
-    prompt: tc('killActive.selectInstances'),
-    options: checkboxOptions,
-    minSelections: 1  // Require at least one selection
-  });
-
-  console.log('[DEBUG] Checkbox result:', checkboxResult);
-
-  if (!checkboxResult || !checkboxResult.indices || checkboxResult.indices.length === 0) {
-    console.log('[DEBUG] No selection or cancelled');
+  if (!selectedInstances) {
     return 'back';
   }
 
   // Confirm before killing
-  const selectedInstances = checkboxResult.indices.map(idx => activeInstances[idx]);
-  console.log('[DEBUG] Selected instances:', selectedInstances.length);
-  console.log('[DEBUG] Showing confirmation...');
+  const confirmed = await confirmOperation(selectedInstances, tc, 'killActive');
 
-  // Display detailed confirmation table
-  displayConfirmationTable(
-    selectedInstances,
-    tc('killActive.confirmationWarning'),
-    tc,
-    'killActive.columns'
-  );
-
-  const confirmResult = await menu.boolean({
-    question: tc('killActive.confirmKill', { count: selectedInstances.length }),
-    defaultValue: false
-  });
-
-  console.log('[DEBUG] Confirm result:', confirmResult);
-
-  if (!confirmResult) {
-    console.log('[DEBUG] User cancelled');
+  if (!confirmed) {
     return 'back';
   }
-
-  console.log('[DEBUG] User confirmed, starting kill process...');
 
   // Kill selected instances
   console.log('');

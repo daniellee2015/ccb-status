@@ -295,7 +295,7 @@ module.exports = {
     selectPrompt: '选择要杀死的实例：',
     selectInstances: '选择活动实例（空格切换，回车确认）',
     confirmationWarning: '警告：即将杀死以下实例',
-    confirmKill: '确认杀死 {count} 个活动实例？',
+    confirmPrompt: '确认杀死 {count} 个活动实例？',
     killing: '正在杀死实例...',
     killed: '已杀死 PID {pid}',
     failed: '失败：{error}',
