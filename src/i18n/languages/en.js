@@ -123,9 +123,11 @@ module.exports = {
     title: 'CCB Instance Management',
     statusSummary: 'Status Summary:',
     active: '✓ Active:  {count}',
+    orphaned: '⊙ Orphaned:  {count}',
     zombie: '⚠ Zombie:  {count}',
     dead: '✗ Dead:    {count}',
     allHealthy: '✓ All instances are healthy',
+    foundOrphaned: '⊙ Found {count} orphaned process(es) (window closed)',
     foundZombies: '⚠ Found {count} zombie instance(s)',
     foundDead: '✗ Found {count} dead instance(s)',
 
