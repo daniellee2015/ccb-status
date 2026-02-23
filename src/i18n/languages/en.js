@@ -36,7 +36,7 @@ module.exports = {
     title: 'Active Instances List',
     noInstances: 'No CCB instances found.',
     pressEnter: 'Press Enter to return...',
-    legend: '✓ Active  ⚠ Zombie  ✗ Dead  |  [CCB] Standalone  [Multi] Managed',
+    legend: '✓ Active  ⊙ Orphaned  ⚠ Zombie  ✗ Dead  |  [CCB] Standalone  [Multi] Managed',
     status: {
       active: '✓ Active',
       zombie: '⚠ Zombie',

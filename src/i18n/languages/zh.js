@@ -36,7 +36,7 @@ module.exports = {
     title: '活动实例列表',
     noInstances: '未找到 CCB 实例。',
     pressEnter: '按 Enter 键返回...',
-    legend: '✓ 活动  ⚠ 僵尸  ✗ 死亡  |  [CCB] 独立  [Multi] 托管',
+    legend: '✓ 活动  ⊙ 后台残留  ⚠ 僵尸  ✗ 已停止  |  [CCB] 独立  [Multi] 托管',
     status: {
       active: '✓ 活动',
       zombie: '⚠ 僵尸',
