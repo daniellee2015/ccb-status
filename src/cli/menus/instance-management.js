@@ -44,7 +44,6 @@ async function showInstanceManagement(lastDetection = null) {
         }
       }
     },
-    },
     footer: {
       menu: {
         options: [
