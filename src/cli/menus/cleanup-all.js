@@ -3,17 +3,23 @@
  * Select and cleanup state files for all non-active CCB instances (dead + zombie)
  */
 
-const { renderPage, renderTable, menu } = require('cli-menu-kit');
+const { renderPage } = require('cli-menu-kit');
 const { getCCBInstances } = require('../../services/instance-service');
 const { tc } = require('../../i18n');
 const { safeKillProcess, validateWorkDir } = require('../../utils/pid-validator');
 const path = require('path');
 const fs = require('fs').promises;
+const {
+  filterInstancesByStatus,
+  displayInstanceTable,
+  selectInstances,
+  confirmOperation
+} = require('../../services/instance-operations-helper');
 
 async function showCleanupAll() {
   // Get all instances (dead + zombie)
   const instances = await getCCBInstances();
-  const cleanableInstances = instances.filter(inst => inst.status === 'dead' || inst.status === 'zombie');
+  const cleanableInstances = filterInstancesByStatus(instances, ['dead', 'zombie']);
 
   if (cleanableInstances.length === 0) {
     const result = await renderPage({
@@ -37,95 +43,18 @@ async function showCleanupAll() {
     return 'back';
   }
 
-  // Show all instances and let user select
-  const result = await renderPage({
-    header: {
-      type: 'section',
-      text: tc('cleanupAll.title')
-    },
-    mainArea: {
-      type: 'display',
-      render: () => {
-        console.log(`  ${tc('cleanupAll.selectPrompt')}`);
-        console.log('');
+  // Display all cleanable instances table
+  await displayInstanceTable(cleanableInstances, tc, 'cleanupAll');
 
-        // Prepare table data
-        const tableData = cleanableInstances.map((inst, idx) => {
-          const projectName = path.basename(inst.workDir);
-          const instanceHash = path.basename(path.dirname(inst.stateFile));
-          const shortHash = instanceHash.substring(0, 8);
-          const type = inst.managed ? '[Multi]' : '[CCB]';
-          const status = inst.status === 'dead' ? '✗' : '⚠';
-
-          return {
-            no: idx + 1,
-            status: status,
-            project: projectName,
-            hash: shortHash,
-            type: type,
-            workDir: inst.workDir
-          };
-        });
-
-        // Render table
-        renderTable({
-          columns: [
-            { header: '#', key: 'no', align: 'center', width: 4 },
-            { header: 'S', key: 'status', align: 'center', width: 3 },
-            { header: tc('cleanupAll.columns.project'), key: 'project', align: 'left', width: 20 },
-            { header: tc('cleanupAll.columns.hash'), key: 'hash', align: 'left', width: 10 },
-            { header: tc('cleanupAll.columns.type'), key: 'type', align: 'left', width: 9 },
-            { header: tc('cleanupAll.columns.workDir'), key: 'workDir', align: 'left', width: 35 }
-          ],
-          data: tableData,
-          showBorders: true,
-          showHeaderSeparator: true,
-          borderColor: '\x1b[2m'
-        });
-
-        console.log('');
-        console.log(`  \x1b[2m${tc('cleanupAll.legend')}\x1b[0m`);
-      }
-    },
-    footer: {
-      menu: {
-        options: [`s. ${tc('cleanupAll.select')}`, `b. ${tc('cleanupAll.back')}`],
-        allowLetterKeys: true
-      }
-    }
-  });
-
-  if (result.value === 'b. Back' || result.value.startsWith('b.')) {
+  // Select instances with cancel option
+  const selectedInstances = await selectInstances(cleanableInstances, tc, 'cleanupAll');
+  if (!selectedInstances) {
     return 'back';
   }
 
-  // Show checkbox menu for selection
-  const checkboxOptions = cleanableInstances.map((inst, idx) => {
-    const projectName = path.basename(inst.workDir);
-    const instanceHash = path.basename(path.dirname(inst.stateFile));
-    const shortHash = instanceHash.substring(0, 8);
-    const statusLabel = inst.status === 'dead' ? 'Dead' : 'Zombie';
-    return `${idx + 1}. ${projectName} (${shortHash}) - ${statusLabel}`;
-  });
-
-  const checkboxResult = await menu.checkbox({
-    prompt: tc('cleanupAll.selectInstances'),
-    options: checkboxOptions,
-    minSelections: 1
-  });
-
-  if (!checkboxResult || !checkboxResult.indices || checkboxResult.indices.length === 0) {
-    return 'back';
-  }
-
-  // Confirm before cleanup
-  const selectedInstances = checkboxResult.indices.map(idx => cleanableInstances[idx]);
-  const confirmResult = await menu.boolean({
-    question: tc('cleanupAll.confirmCleanup', { count: selectedInstances.length }),
-    defaultValue: false
-  });
-
-  if (!confirmResult) {
+  // Confirm operation with detailed table
+  const confirmed = await confirmOperation(selectedInstances, tc, 'cleanupAll');
+  if (!confirmed) {
     return 'back';
   }
 

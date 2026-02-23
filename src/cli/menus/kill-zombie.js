@@ -3,16 +3,22 @@
  * Select and kill zombie CCB instances
  */
 
-const { renderPage, renderTable, menu } = require('cli-menu-kit');
+const { renderPage } = require('cli-menu-kit');
 const { getCCBInstances } = require('../../services/instance-service');
 const { tc } = require('../../i18n');
 const { safeKillProcess } = require('../../utils/pid-validator');
 const path = require('path');
+const {
+  filterInstancesByStatus,
+  displayInstanceTable,
+  selectInstances,
+  confirmOperation
+} = require('../../services/instance-operations-helper');
 
 async function showKillZombie() {
   // Get all instances and filter zombies
   const instances = await getCCBInstances();
-  const zombieInstances = instances.filter(inst => inst.status === 'zombie');
+  const zombieInstances = filterInstancesByStatus(instances, 'zombie');
 
   if (zombieInstances.length === 0) {
     const result = await renderPage({
@@ -36,90 +42,18 @@ async function showKillZombie() {
     return 'back';
   }
 
-  // Show zombie instances and let user select
-  const result = await renderPage({
-    header: {
-      type: 'section',
-      text: tc('killZombie.title')
-    },
-    mainArea: {
-      type: 'display',
-      render: () => {
-        console.log(`  ${tc('killZombie.selectPrompt')}`);
-        console.log('');
+  // Display zombie instances table
+  await displayInstanceTable(zombieInstances, tc, 'killZombie');
 
-        // Prepare table data
-        const tableData = zombieInstances.map((inst, idx) => {
-          const projectName = path.basename(inst.workDir);
-          const instanceHash = path.basename(path.dirname(inst.stateFile));
-          const shortHash = instanceHash.substring(0, 8);
-          const type = inst.managed ? '[Multi]' : '[CCB]';
-
-          return {
-            no: idx + 1,
-            project: projectName,
-            hash: shortHash,
-            type: type,
-            pid: inst.pid,
-            port: inst.port
-          };
-        });
-
-        // Render table
-        renderTable({
-          columns: [
-            { header: '#', key: 'no', align: 'center', width: 4 },
-            { header: tc('killZombie.columns.project'), key: 'project', align: 'left', width: 20 },
-            { header: tc('killZombie.columns.hash'), key: 'hash', align: 'left', width: 10 },
-            { header: tc('killZombie.columns.type'), key: 'type', align: 'left', width: 9 },
-            { header: tc('killZombie.columns.pid'), key: 'pid', align: 'right', width: 8 },
-            { header: tc('killZombie.columns.port'), key: 'port', align: 'right', width: 8 }
-          ],
-          data: tableData,
-          showBorders: true,
-          showHeaderSeparator: true,
-          borderColor: '\x1b[2m'
-        });
-      }
-    },
-    footer: {
-      menu: {
-        options: [`s. ${tc('killZombie.select')}`, `b. ${tc('killZombie.back')}`],
-        allowLetterKeys: true
-      }
-    }
-  });
-
-  if (result.value === 'b. Back' || result.value.startsWith('b.')) {
+  // Select instances with cancel option
+  const selectedInstances = await selectInstances(zombieInstances, tc, 'killZombie');
+  if (!selectedInstances) {
     return 'back';
   }
 
-  // Show checkbox menu for selection
-  const checkboxOptions = zombieInstances.map((inst, idx) => {
-    const projectName = path.basename(inst.workDir);
-    const instanceHash = path.basename(path.dirname(inst.stateFile));
-    const shortHash = instanceHash.substring(0, 8);
-    return `${idx + 1}. ${projectName} (${shortHash}) - PID ${inst.pid}`;
-  });
-
-  const checkboxResult = await menu.checkbox({
-    prompt: tc('killZombie.selectInstances'),
-    options: checkboxOptions,
-    minSelections: 1
-  });
-
-  if (!checkboxResult || !checkboxResult.indices || checkboxResult.indices.length === 0) {
-    return 'back';
-  }
-
-  // Confirm before killing
-  const selectedInstances = checkboxResult.indices.map(idx => zombieInstances[idx]);
-  const confirmResult = await menu.boolean({
-    question: tc('killZombie.confirmKill', { count: selectedInstances.length }),
-    defaultValue: false
-  });
-
-  if (!confirmResult) {
+  // Confirm operation with detailed table
+  const confirmed = await confirmOperation(selectedInstances, tc, 'killZombie');
+  if (!confirmed) {
     return 'back';
   }
 

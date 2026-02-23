@@ -3,16 +3,22 @@
  * Select and restart dead instances
  */
 
-const { renderPage, renderTable, menu } = require('cli-menu-kit');
+const { renderPage } = require('cli-menu-kit');
 const { getCCBInstances } = require('../../services/instance-service');
 const { restartDead } = require('../../services/restart-service');
 const { tc } = require('../../i18n');
 const path = require('path');
+const {
+  filterInstancesByStatus,
+  displayInstanceTable,
+  selectInstances,
+  confirmOperation
+} = require('../../services/instance-operations-helper');
 
 async function showRestartDead() {
   // Get all instances and filter dead ones
   const instances = await getCCBInstances();
-  const deadInstances = instances.filter(inst => inst.status === 'dead');
+  const deadInstances = filterInstancesByStatus(instances, 'dead');
 
   if (deadInstances.length === 0) {
     const result = await renderPage({
@@ -36,98 +42,19 @@ async function showRestartDead() {
     return 'back';
   }
 
-  // Show dead instances and let user select
-  const result = await renderPage({
-    header: {
-      type: 'section',
-      text: tc('restartDead.title')
-    },
-    mainArea: {
-      type: 'display',
-      render: () => {
-        console.log(`  ${tc('restartDead.selectPrompt')}`);
-        console.log('');
+  // Display dead instances table
+  await displayInstanceTable(deadInstances, tc, 'restartDead');
 
-        // Prepare table data
-        const tableData = deadInstances.map((inst, idx) => {
-          const projectName = path.basename(inst.workDir);
-          const instanceHash = path.basename(path.dirname(inst.stateFile));
-          const shortHash = instanceHash.substring(0, 8);
-          const type = inst.managed ? '[Multi]' : '[CCB]';
-          const tmuxStatus = inst.tmuxPane ? '✓' : '✗';
-
-          return {
-            no: idx + 1,
-            project: projectName,
-            hash: shortHash,
-            type: type,
-            tmux: tmuxStatus,
-            workDir: inst.workDir.length > 30 ? '...' + inst.workDir.slice(-27) : inst.workDir
-          };
-        });
-
-        // Render table
-        renderTable({
-          columns: [
-            { header: '#', key: 'no', align: 'center', width: 4 },
-            { header: tc('restartDead.columns.project'), key: 'project', align: 'left', width: 20 },
-            { header: tc('restartDead.columns.hash'), key: 'hash', align: 'left', width: 10 },
-            { header: tc('restartDead.columns.type'), key: 'type', align: 'left', width: 9 },
-            { header: tc('restartDead.columns.tmux'), key: 'tmux', align: 'center', width: 6 },
-            { header: tc('restartDead.columns.workDir'), key: 'workDir', align: 'left', width: 30 }
-          ],
-          data: tableData,
-          showBorders: true,
-          showHeaderSeparator: true,
-          borderColor: '\x1b[2m'
-        });
-
-        console.log('');
-        console.log(`  \x1b[2m${tc('restartDead.legend')}\x1b[0m`);
-      }
-    },
-    footer: {
-      menu: {
-        options: [`s. ${tc('restartDead.select')}`, `b. ${tc('restartDead.back')}`],
-        allowLetterKeys: true
-      }
-    }
-  });
-
-  if (result.value === 'b') {
+  // Select instances with cancel option
+  const selectedInstances = await selectInstances(deadInstances, tc, 'restartDead');
+  if (!selectedInstances) {
     return 'back';
   }
 
-  // Show checkbox menu for selection
-  const checkboxOptions = deadInstances.map((inst, idx) => {
-    const projectName = path.basename(inst.workDir);
-    const instanceHash = path.basename(path.dirname(inst.stateFile));
-    const shortHash = instanceHash.substring(0, 8);
-    const tmuxStatus = inst.tmuxPane ? '✓' : '✗';
-    return `${idx + 1}. ${projectName} [${shortHash}] - Tmux: ${tmuxStatus}`;
-  });
-
-  const selectResult = await menu.checkbox({
-    prompt: tc('restartDead.checkboxTitle'),
-    options: checkboxOptions,
-    minSelections: 1
-  });
-
-  if (!selectResult || selectResult.indices.length === 0) {
-    return 'cancelled';
-  }
-
-  // Get selected instances
-  const selectedInstances = selectResult.indices.map(idx => deadInstances[idx]);
-
-  // Confirm restart
-  const confirmed = await menu.booleanH(
-    `\n  ⚠️  ${tc('restartDead.confirmPrompt', { count: selectedInstances.length })}`,
-    false
-  );
-
+  // Confirm operation with detailed table
+  const confirmed = await confirmOperation(selectedInstances, tc, 'restartDead');
   if (!confirmed) {
-    return 'cancelled';
+    return 'back';
   }
 
   // Perform restart

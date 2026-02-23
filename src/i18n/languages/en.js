@@ -247,7 +247,8 @@ module.exports = {
     noZombies: '✓ No zombie instances found',
     selectPrompt: 'Select instances to restart:',
     checkboxTitle: 'Select Zombie Instances (Space to toggle, Enter to confirm)',
-    confirmPrompt: 'Restart {count} zombie instance(s)?',
+    confirmationWarning: 'Warning: About to restart the following zombie instances (kill process then restart)',
+    confirmPrompt: 'Confirm restarting {count} zombie instance(s)?',
     restarting: 'Restarting instances...',
     processing: 'Processing {project} [{hash}]...',
     successCount: '✓ Successfully restarted {count} instance(s)',
@@ -257,10 +258,12 @@ module.exports = {
     back: 'Back',
     columns: {
       project: 'Project',
+      parent: 'Parent',
       hash: 'Hash',
       type: 'Type',
       pid: 'PID',
-      port: 'Port'
+      port: 'Port',
+      tmux: 'Tmux'
     }
   },
 
@@ -270,7 +273,8 @@ module.exports = {
     noDead: '✓ No dead instances found',
     selectPrompt: 'Select instances to restart:',
     checkboxTitle: 'Select Dead Instances (Space to toggle, Enter to confirm)',
-    confirmPrompt: 'Restart {count} dead instance(s)?',
+    confirmationWarning: 'Warning: About to restart the following dead instances',
+    confirmPrompt: 'Confirm restarting {count} dead instance(s)?',
     restarting: 'Restarting instances...',
     processing: 'Processing {project} [{hash}]...',
     successCount: '✓ Successfully restarted {count} instance(s)',
@@ -281,6 +285,7 @@ module.exports = {
     back: 'Back',
     columns: {
       project: 'Project',
+      parent: 'Parent',
       hash: 'Hash',
       type: 'Type',
       tmux: 'Tmux',
@@ -319,6 +324,8 @@ module.exports = {
     noDead: '✓ No dead instances found',
     selectPrompt: 'Select instances to cleanup:',
     selectInstances: 'Select Dead Instances (Space to toggle, Enter to confirm)',
+    confirmationWarning: 'Warning: About to cleanup state files for the following dead instances',
+    confirmPrompt: 'Confirm cleaning up {count} dead instance(s)?',
     confirmCleanup: 'Cleanup {count} dead instance(s)?',
     cleaning: 'Cleaning up state files...',
     cleaned: 'State files removed',
@@ -328,9 +335,11 @@ module.exports = {
     back: 'Back',
     columns: {
       project: 'Project',
+      parent: 'Parent',
       hash: 'Hash',
       type: 'Type',
-      workDir: 'Work Directory'
+      workDir: 'Work Directory',
+      tmux: 'Tmux'
     }
   },
 
@@ -340,6 +349,8 @@ module.exports = {
     noZombies: '✓ No zombie instances found',
     selectPrompt: 'Select instances to kill:',
     selectInstances: 'Select Zombie Instances (Space to toggle, Enter to confirm)',
+    confirmationWarning: 'Warning: About to kill the following zombie instances',
+    confirmPrompt: 'Confirm killing {count} zombie instance(s)?',
     confirmKill: 'Kill {count} zombie instance(s)?',
     killing: 'Killing instances...',
     killed: 'Killed PID {pid}',
@@ -349,10 +360,12 @@ module.exports = {
     back: 'Back',
     columns: {
       project: 'Project',
+      parent: 'Parent',
       hash: 'Hash',
       type: 'Type',
       pid: 'PID',
-      port: 'Port'
+      port: 'Port',
+      tmux: 'Tmux'
     }
   },
 
@@ -406,6 +419,8 @@ module.exports = {
     noInstances: '✓ No instances to cleanup',
     selectPrompt: 'Select instances to cleanup:',
     selectInstances: 'Select Instances (Space to toggle, Enter to confirm)',
+    confirmationWarning: 'Warning: About to cleanup the following instances (zombie processes will be killed)',
+    confirmPrompt: 'Confirm cleaning up {count} instance(s)?',
     confirmCleanup: 'Cleanup {count} instance(s)?',
     cleaning: 'Cleaning up state files...',
     cleaned: 'State files removed',
@@ -416,9 +431,11 @@ module.exports = {
     back: 'Back',
     columns: {
       project: 'Project',
+      parent: 'Parent',
       hash: 'Hash',
       type: 'Type',
-      workDir: 'Work Directory'
+      workDir: 'Work Directory',
+      tmux: 'Tmux'
     }
   },
 

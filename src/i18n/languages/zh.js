@@ -247,7 +247,8 @@ module.exports = {
     noZombies: '✓ 未找到僵尸实例',
     selectPrompt: '选择要重启的实例：',
     checkboxTitle: '选择僵尸实例（空格切换，回车确认）',
-    confirmPrompt: '重启 {count} 个僵尸实例？',
+    confirmationWarning: '警告：即将重启以下僵尸实例（先杀死进程再重启）',
+    confirmPrompt: '确认重启 {count} 个僵尸实例？',
     restarting: '正在重启实例...',
     processing: '正在处理 {project} [{hash}]...',
     successCount: '✓ 成功重启 {count} 个实例',
@@ -257,10 +258,12 @@ module.exports = {
     back: '返回',
     columns: {
       project: '项目',
+      parent: '父项目',
       hash: '哈希',
       type: '类型',
       pid: 'PID',
-      port: '端口'
+      port: '端口',
+      tmux: 'Tmux'
     }
   },
 
@@ -270,7 +273,8 @@ module.exports = {
     noDead: '✓ 未找到死亡实例',
     selectPrompt: '选择要重启的实例：',
     checkboxTitle: '选择死亡实例（空格切换，回车确认）',
-    confirmPrompt: '重启 {count} 个死亡实例？',
+    confirmationWarning: '警告：即将重启以下死亡实例',
+    confirmPrompt: '确认重启 {count} 个死亡实例？',
     restarting: '正在重启实例...',
     processing: '正在处理 {project} [{hash}]...',
     successCount: '✓ 成功重启 {count} 个实例',
@@ -281,6 +285,7 @@ module.exports = {
     back: '返回',
     columns: {
       project: '项目',
+      parent: '父项目',
       hash: '哈希',
       type: '类型',
       tmux: 'Tmux',
@@ -319,6 +324,8 @@ module.exports = {
     noDead: '✓ 未找到死亡实例',
     selectPrompt: '选择要清理的实例：',
     selectInstances: '选择死亡实例（空格切换，回车确认）',
+    confirmationWarning: '警告：即将清理以下死亡实例的状态文件',
+    confirmPrompt: '确认清理 {count} 个死亡实例？',
     confirmCleanup: '清理 {count} 个死亡实例？',
     cleaning: '正在清理状态文件...',
     cleaned: '状态文件已删除',
@@ -328,9 +335,11 @@ module.exports = {
     back: '返回',
     columns: {
       project: '项目',
+      parent: '父项目',
       hash: '哈希',
       type: '类型',
-      workDir: '工作目录'
+      workDir: '工作目录',
+      tmux: 'Tmux'
     }
   },
 
@@ -340,6 +349,8 @@ module.exports = {
     noZombies: '✓ 未找到僵尸实例',
     selectPrompt: '选择要杀死的实例：',
     selectInstances: '选择僵尸实例（空格切换，回车确认）',
+    confirmationWarning: '警告：即将杀死以下僵尸实例',
+    confirmPrompt: '确认杀死 {count} 个僵尸实例？',
     confirmKill: '杀死 {count} 个僵尸实例？',
     killing: '正在杀死实例...',
     killed: '已杀死 PID {pid}',
@@ -349,10 +360,12 @@ module.exports = {
     back: '返回',
     columns: {
       project: '项目',
+      parent: '父项目',
       hash: '哈希',
       type: '类型',
       pid: 'PID',
-      port: '端口'
+      port: '端口',
+      tmux: 'Tmux'
     }
   },
 
@@ -411,6 +424,8 @@ module.exports = {
     noInstances: '✓ 没有需要清理的实例',
     selectPrompt: '选择要清理的实例：',
     selectInstances: '选择实例（空格切换，回车确认）',
+    confirmationWarning: '警告：即将清理以下实例（僵尸进程将被杀死）',
+    confirmPrompt: '确认清理 {count} 个实例？',
     confirmCleanup: '清理 {count} 个实例？',
     cleaning: '正在清理状态文件...',
     cleaned: '状态文件已删除',
@@ -421,9 +436,11 @@ module.exports = {
     back: '返回',
     columns: {
       project: '项目',
+      parent: '父项目',
       hash: '哈希',
       type: '类型',
-      workDir: '工作目录'
+      workDir: '工作目录',
+      tmux: 'Tmux'
     }
   },
 

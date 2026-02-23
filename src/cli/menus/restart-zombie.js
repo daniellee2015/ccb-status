@@ -3,16 +3,22 @@
  * Select and restart zombie instances
  */
 
-const { renderPage, renderTable, menu } = require('cli-menu-kit');
+const { renderPage } = require('cli-menu-kit');
 const { getCCBInstances } = require('../../services/instance-service');
 const { restartZombie } = require('../../services/restart-service');
 const { tc } = require('../../i18n');
 const path = require('path');
+const {
+  filterInstancesByStatus,
+  displayInstanceTable,
+  selectInstances,
+  confirmOperation
+} = require('../../services/instance-operations-helper');
 
 async function showRestartZombie() {
   // Get all instances and filter zombies
   const instances = await getCCBInstances();
-  const zombies = instances.filter(inst => inst.status === 'zombie');
+  const zombies = filterInstancesByStatus(instances, 'zombie');
 
   if (zombies.length === 0) {
     const result = await renderPage({
@@ -36,93 +42,19 @@ async function showRestartZombie() {
     return 'back';
   }
 
-  // Show zombie instances and let user select
-  const result = await renderPage({
-    header: {
-      type: 'section',
-      text: tc('restartZombie.title')
-    },
-    mainArea: {
-      type: 'display',
-      render: () => {
-        console.log(`  ${tc('restartZombie.selectPrompt')}`);
-        console.log('');
+  // Display zombie instances table
+  await displayInstanceTable(zombies, tc, 'restartZombie');
 
-        // Prepare table data
-        const tableData = zombies.map((inst, idx) => {
-          const projectName = path.basename(inst.workDir);
-          const instanceHash = path.basename(path.dirname(inst.stateFile));
-          const shortHash = instanceHash.substring(0, 8);
-          const type = inst.managed ? '[Multi]' : '[CCB]';
-
-          return {
-            no: idx + 1,
-            project: projectName,
-            hash: shortHash,
-            type: type,
-            pid: inst.pid,
-            port: inst.port
-          };
-        });
-
-        // Render table
-        renderTable({
-          columns: [
-            { header: '#', key: 'no', align: 'center', width: 4 },
-            { header: tc('restartZombie.columns.project'), key: 'project', align: 'left', width: 20 },
-            { header: tc('restartZombie.columns.hash'), key: 'hash', align: 'left', width: 10 },
-            { header: tc('restartZombie.columns.type'), key: 'type', align: 'left', width: 9 },
-            { header: tc('restartZombie.columns.pid'), key: 'pid', align: 'right', width: 8 },
-            { header: tc('restartZombie.columns.port'), key: 'port', align: 'right', width: 8 }
-          ],
-          data: tableData,
-          showBorders: true,
-          showHeaderSeparator: true,
-          borderColor: '\x1b[2m'
-        });
-      }
-    },
-    footer: {
-      menu: {
-        options: [`s. ${tc('restartZombie.select')}`, `b. ${tc('restartZombie.back')}`],
-        allowLetterKeys: true
-      }
-    }
-  });
-
-  if (result.value === 'b') {
+  // Select instances with cancel option
+  const selectedInstances = await selectInstances(zombies, tc, 'restartZombie');
+  if (!selectedInstances) {
     return 'back';
   }
 
-  // Show checkbox menu for selection
-  const checkboxOptions = zombies.map((inst, idx) => {
-    const projectName = path.basename(inst.workDir);
-    const instanceHash = path.basename(path.dirname(inst.stateFile));
-    const shortHash = instanceHash.substring(0, 8);
-    return `${idx + 1}. ${projectName} [${shortHash}] - PID ${inst.pid}`;
-  });
-
-  const selectResult = await menu.checkbox({
-    prompt: tc('restartZombie.checkboxTitle'),
-    options: checkboxOptions,
-    minSelections: 1
-  });
-
-  if (!selectResult || selectResult.indices.length === 0) {
-    return 'cancelled';
-  }
-
-  // Get selected instances
-  const selectedInstances = selectResult.indices.map(idx => zombies[idx]);
-
-  // Confirm restart
-  const confirmed = await menu.booleanH(
-    `\n  ⚠️  ${tc('restartZombie.confirmPrompt', { count: selectedInstances.length })}`,
-    false
-  );
-
+  // Confirm operation with detailed table
+  const confirmed = await confirmOperation(selectedInstances, tc, 'restartZombie');
   if (!confirmed) {
-    return 'cancelled';
+    return 'back';
   }
 
   // Perform restart
