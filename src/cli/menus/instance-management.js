@@ -1,44 +1,41 @@
 /**
  * Instance Management Menu
- * Level 2 - Manage CCB instances (detect, restart, cleanup)
+ * Level 2 - Manage CCB instances (kill, cleanup, restart)
  */
 
 const { renderPage } = require('cli-menu-kit');
 const { tc } = require('../../i18n');
+const { detectStatus } = require('./cleanup');
 
 async function showInstanceManagement(lastDetection = null) {
+  // Auto-detect on first entry
+  if (!lastDetection) {
+    lastDetection = await detectStatus();
+  }
+
   const result = await renderPage({
     header: {
       type: 'section',
-      text: tc('zombieDetection.title')
+      text: tc('instanceManagement.title')
     },
     mainArea: {
       type: 'display',
       render: () => {
-        if (!lastDetection) {
-          console.log(`  \x1b[2m${tc('zombieDetection.detectPrompt')}\x1b[0m`);
-          console.log('');
-          console.log(`  \x1b[36m${tc('cleanup.scenarioGuide')}\x1b[0m`);
-          console.log(`    \x1b[2m• ${tc('cleanup.zombieScenario')}\x1b[0m`);
-          console.log(`    \x1b[2m• ${tc('cleanup.deadScenario')}\x1b[0m`);
-          return;
-        }
-
         // Show detection results
-        console.log(`  ${tc('zombieDetection.statusSummary')}`);
-        console.log(`    \x1b[32m${tc('cleanup.active', { count: lastDetection.active.length })}\x1b[0m`);
-        console.log(`    \x1b[33m${tc('cleanup.zombie', { count: lastDetection.zombies.length })}\x1b[0m`);
-        console.log(`    \x1b[90m${tc('cleanup.dead', { count: lastDetection.dead.length })}\x1b[0m`);
+        console.log(`  ${tc('instanceManagement.statusSummary')}`);
+        console.log(`    \x1b[32m${tc('instanceManagement.active', { count: lastDetection.active.length })}\x1b[0m`);
+        console.log(`    \x1b[33m${tc('instanceManagement.zombie', { count: lastDetection.zombies.length })}\x1b[0m`);
+        console.log(`    \x1b[90m${tc('instanceManagement.dead', { count: lastDetection.dead.length })}\x1b[0m`);
         console.log('');
 
         if (lastDetection.zombies.length === 0 && lastDetection.dead.length === 0) {
-          console.log(`  \x1b[32m${tc('zombieDetection.allHealthy')}\x1b[0m`);
+          console.log(`  \x1b[32m${tc('instanceManagement.allHealthy')}\x1b[0m`);
         } else {
           if (lastDetection.zombies.length > 0) {
-            console.log(`  \x1b[33m${tc('zombieDetection.foundZombies', { count: lastDetection.zombies.length })}\x1b[0m`);
+            console.log(`  \x1b[33m${tc('instanceManagement.foundZombies', { count: lastDetection.zombies.length })}\x1b[0m`);
           }
           if (lastDetection.dead.length > 0) {
-            console.log(`  \x1b[90m${tc('zombieDetection.foundDead', { count: lastDetection.dead.length })}\x1b[0m`);
+            console.log(`  \x1b[90m${tc('instanceManagement.foundDead', { count: lastDetection.dead.length })}\x1b[0m`);
           }
         }
       }
@@ -46,18 +43,18 @@ async function showInstanceManagement(lastDetection = null) {
     footer: {
       menu: {
         options: [
-          `d. ${tc('zombieDetection.detectStatus')}`,
-          `z. ${tc('cleanup.restartZombie')}`,
-          `r. ${tc('cleanup.restartDead')}`,
-          `c. ${tc('zombieDetection.cleanup')}`,
-          `b. ${tc('zombieDetection.back')}`
+          `1. ${tc('instanceManagement.killOpsMenu')} - \x1b[2m${tc('instanceManagement.killScenario')}\x1b[0m`,
+          `2. ${tc('instanceManagement.cleanupOpsMenu')} - \x1b[2m${tc('instanceManagement.cleanupScenario')}\x1b[0m`,
+          `3. ${tc('instanceManagement.restartOpsMenu')} - \x1b[2m${tc('instanceManagement.restartScenario')}\x1b[0m`,
+          `d. ${tc('instanceManagement.detectStatus')} - \x1b[2m${tc('instanceManagement.detectHint')}\x1b[0m`,
+          `b. ${tc('instanceManagement.back')}`
         ],
         allowLetterKeys: true
       }
     }
   });
 
-  return result.value;
+  return { action: result.value, detection: lastDetection };
 }
 
 module.exports = { showInstanceManagement };

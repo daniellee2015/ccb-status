@@ -116,16 +116,79 @@ module.exports = {
   },
 
   // Zombie Detection
-  zombieDetection: {
+  // Instance Management
+  instanceManagement: {
     title: 'CCB Instance Management',
     statusSummary: 'Status Summary:',
+    active: '✓ Active:  {count}',
+    zombie: '⚠ Zombie:  {count}',
+    dead: '✗ Dead:    {count}',
     allHealthy: '✓ All instances are healthy',
     foundZombies: '⚠ Found {count} zombie instance(s)',
     foundDead: '✗ Found {count} dead instance(s)',
-    detectPrompt: 'Press "d" to detect instance status',
-    detectStatus: 'Detect Status',
-    cleanup: 'Cleanup All',
+
+    // Menu scenarios
+    killScenario: 'Stop CCB permanently (switching projects, freeing resources)',
+    cleanupScenario: 'Remove state files after CCB stopped (manual kill, crash)',
+    restartScenario: 'Fix stuck/frozen CCB (unresponsive, config changes)',
+
+    // Menu categories
+    killOpsMenu: 'Kill Operations',
+    cleanupOpsMenu: 'Cleanup Operations',
+    restartOpsMenu: 'Restart Operations',
+
+    // Kill operations
+    killActive: 'Kill Active Instances',
+    killActiveHint: 'Kill running CCB processes',
+    killZombie: 'Kill Zombie Instances',
+    killZombieHint: 'Kill stuck CCB processes',
+    killAll: 'Kill All Instances',
+    killAllHint: 'Kill all CCB processes',
+
+    // Cleanup operations
+    cleanupDead: 'Cleanup Dead States',
+    cleanupDeadHint: 'Remove state files for exited processes',
+    cleanupZombie: 'Cleanup Zombie States',
+    cleanupZombieHint: 'Remove state files for stuck processes',
+    cleanupAll: 'Cleanup All States',
+    cleanupAllHint: 'Remove all unused state files',
+
+    // Restart operations
+    restartZombie: 'Restart Zombie Instances',
+    restartZombieHint: 'Kill stuck processes and restart',
+    restartDead: 'Restart Dead Instances',
+    restartDeadHint: 'Restart exited processes',
+    restartAll: 'Restart All Instances',
+    restartAllHint: 'Restart all instances',
+
+    // Other
+    detectStatus: 'Status Detection',
+    detectHint: 'Re-check all instance status',
     back: 'Back'
+  },
+
+  // Kill Operations
+  killOperations: {
+    title: 'Kill Operations',
+    description: 'Kill CCB processes without restarting',
+    scenario: 'When to use:',
+    scenarioDesc: 'When you want to stop CCB instances permanently (e.g., switching projects, freeing resources)'
+  },
+
+  // Cleanup Operations
+  cleanupOperations: {
+    title: 'Cleanup Operations',
+    description: 'Remove state files for CCB instances',
+    scenario: 'When to use:',
+    scenarioDesc: 'When CCB has stopped but state files remain (e.g., after manual kill, system crash)'
+  },
+
+  // Restart Operations
+  restartOperations: {
+    title: 'Restart Operations',
+    description: 'Kill and restart CCB instances',
+    scenario: 'When to use:',
+    scenarioDesc: 'When CCB is stuck/frozen or needs a fresh start (e.g., unresponsive, config changes)'
   },
 
   // Cleanup
@@ -216,6 +279,137 @@ module.exports = {
       hash: 'Hash',
       type: 'Type',
       tmux: 'Tmux',
+      workDir: 'Work Directory'
+    }
+  },
+
+  // Kill Active
+  killActive: {
+    title: 'Kill Active Instances',
+    noActive: '✓ No active instances found',
+    selectPrompt: 'Select instances to kill:',
+    selectInstances: 'Select Active Instances (Space to toggle, Enter to confirm)',
+    confirmKill: 'Kill {count} active instance(s)?',
+    killing: 'Killing instances...',
+    killed: 'Killed PID {pid}',
+    failed: 'Failed: {error}',
+    complete: 'Kill operation complete',
+    select: 'Select',
+    back: 'Back',
+    columns: {
+      project: 'Project',
+      hash: 'Hash',
+      type: 'Type',
+      pid: 'PID',
+      port: 'Port'
+    }
+  },
+
+  // Cleanup Dead
+  cleanupDead: {
+    title: 'Cleanup Dead Instances',
+    noDead: '✓ No dead instances found',
+    selectPrompt: 'Select instances to cleanup:',
+    selectInstances: 'Select Dead Instances (Space to toggle, Enter to confirm)',
+    confirmCleanup: 'Cleanup {count} dead instance(s)?',
+    cleaning: 'Cleaning up state files...',
+    cleaned: 'State files removed',
+    failed: 'Failed: {error}',
+    complete: 'Cleanup operation complete',
+    select: 'Select',
+    back: 'Back',
+    columns: {
+      project: 'Project',
+      hash: 'Hash',
+      type: 'Type',
+      workDir: 'Work Directory'
+    }
+  },
+
+  // Kill Zombie
+  killZombie: {
+    title: 'Kill Zombie Instances',
+    noZombies: '✓ No zombie instances found',
+    selectPrompt: 'Select instances to kill:',
+    selectInstances: 'Select Zombie Instances (Space to toggle, Enter to confirm)',
+    confirmKill: 'Kill {count} zombie instance(s)?',
+    killing: 'Killing instances...',
+    killed: 'Killed PID {pid}',
+    failed: 'Failed: {error}',
+    complete: 'Kill operation complete',
+    select: 'Select',
+    back: 'Back',
+    columns: {
+      project: 'Project',
+      hash: 'Hash',
+      type: 'Type',
+      pid: 'PID',
+      port: 'Port'
+    }
+  },
+
+  // Cleanup Zombie
+  cleanupZombie: {
+    title: 'Cleanup Zombie Instances',
+    noZombies: '✓ No zombie instances found',
+    selectPrompt: 'Select instances to cleanup:',
+    selectInstances: 'Select Zombie Instances (Space to toggle, Enter to confirm)',
+    confirmCleanup: 'Cleanup {count} zombie instance(s)?',
+    cleaning: 'Cleaning up state files...',
+    cleaned: 'State files removed',
+    failed: 'Failed: {error}',
+    complete: 'Cleanup operation complete',
+    select: 'Select',
+    back: 'Back',
+    columns: {
+      project: 'Project',
+      hash: 'Hash',
+      type: 'Type',
+      pid: 'PID'
+    }
+  },
+
+  // Kill All
+  killAll: {
+    title: 'Kill All Instances',
+    noInstances: '✓ No instances found',
+    selectPrompt: 'Select instances to kill:',
+    selectInstances: 'Select Instances (Space to toggle, Enter to confirm)',
+    confirmKill: 'Kill {count} instance(s)?',
+    killing: 'Killing instances...',
+    killed: 'Killed PID {pid}',
+    failed: 'Failed: {error}',
+    complete: 'Kill operation complete',
+    legend: '✓ = Active | ⚠ = Zombie',
+    select: 'Select',
+    back: 'Back',
+    columns: {
+      project: 'Project',
+      hash: 'Hash',
+      type: 'Type',
+      pid: 'PID',
+      port: 'Port'
+    }
+  },
+
+  // Cleanup All
+  cleanupAll: {
+    title: 'Cleanup All Instances',
+    noInstances: '✓ No instances to cleanup',
+    selectPrompt: 'Select instances to cleanup:',
+    selectInstances: 'Select Instances (Space to toggle, Enter to confirm)',
+    confirmCleanup: 'Cleanup {count} instance(s)?',
+    cleaning: 'Cleaning up state files...',
+    cleaned: 'State files removed',
+    failed: 'Failed: {error}',
+    complete: 'Cleanup operation complete',
+    legend: '✗ = Dead | ⚠ = Zombie',
+    select: 'Select',
+    back: 'Back',
+    columns: {
+      project: 'Project',
+      hash: 'Hash',
+      type: 'Type',
       workDir: 'Work Directory'
     }
   },

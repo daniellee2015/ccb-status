@@ -116,16 +116,79 @@ module.exports = {
   },
 
   // Zombie Detection
-  zombieDetection: {
+  // Instance Management
+  instanceManagement: {
     title: 'CCB 实例管理',
     statusSummary: '状态摘要：',
+    active: '✓ 活动：  {count}',
+    zombie: '⚠ 僵尸：  {count}',
+    dead: '✗ 死亡：  {count}',
     allHealthy: '✓ 所有实例都健康',
     foundZombies: '⚠ 发现 {count} 个僵尸实例',
     foundDead: '✗ 发现 {count} 个死亡实例',
-    detectPrompt: '按 "d" 检测实例状态',
-    detectStatus: '检测状态',
-    cleanup: '清理全部',
+
+    // Menu scenarios
+    killScenario: '永久停止 CCB（切换项目、释放资源）',
+    cleanupScenario: '清理状态文件（手动 kill 后、系统崩溃后）',
+    restartScenario: '修复卡死的 CCB（无响应、配置更改后）',
+
+    // Menu categories
+    killOpsMenu: 'Kill 操作',
+    cleanupOpsMenu: 'Cleanup 操作',
+    restartOpsMenu: 'Restart 操作',
+
+    // Kill operations
+    killActive: 'Kill Active Instances',
+    killActiveHint: '杀死正在运行的 CCB 进程',
+    killZombie: 'Kill Zombie Instances',
+    killZombieHint: '杀死卡死的 CCB 进程',
+    killAll: 'Kill All Instances',
+    killAllHint: '杀死所有 CCB 进程',
+
+    // Cleanup operations
+    cleanupDead: 'Cleanup Dead States',
+    cleanupDeadHint: '清理已退出进程的状态文件',
+    cleanupZombie: 'Cleanup Zombie States',
+    cleanupZombieHint: '清理卡死进程的状态文件',
+    cleanupAll: 'Cleanup All States',
+    cleanupAllHint: '清理所有未使用的状态文件',
+
+    // Restart operations
+    restartZombie: 'Restart Zombie Instances',
+    restartZombieHint: '杀死卡死进程并重启',
+    restartDead: 'Restart Dead Instances',
+    restartDeadHint: '重启已退出的进程',
+    restartAll: 'Restart All Instances',
+    restartAllHint: '重启所有实例',
+
+    // Other
+    detectStatus: 'Status Detection',
+    detectHint: '重新检查所有实例状态',
     back: '返回'
+  },
+
+  // Kill Operations
+  killOperations: {
+    title: 'Kill 操作',
+    description: '杀死 CCB 进程（不重启）',
+    scenario: '使用场景：',
+    scenarioDesc: '当你想永久停止 CCB 实例时（例如：切换项目、释放资源）'
+  },
+
+  // Cleanup Operations
+  cleanupOperations: {
+    title: 'Cleanup 操作',
+    description: '清理 CCB 实例的状态文件',
+    scenario: '使用场景：',
+    scenarioDesc: '当 CCB 已停止但状态文件仍存在时（例如：手动 kill 后、系统崩溃后）'
+  },
+
+  // Restart Operations
+  restartOperations: {
+    title: 'Restart 操作',
+    description: '杀死并重启 CCB 实例',
+    scenario: '使用场景：',
+    scenarioDesc: '当 CCB 卡死/无响应或需要重新启动时（例如：无法输入、配置更改后）'
   },
 
   // Cleanup
@@ -216,6 +279,137 @@ module.exports = {
       hash: '哈希',
       type: '类型',
       tmux: 'Tmux',
+      workDir: '工作目录'
+    }
+  },
+
+  // Kill Active
+  killActive: {
+    title: 'Kill Active Instances',
+    noActive: '✓ 未找到活动实例',
+    selectPrompt: '选择要杀死的实例：',
+    selectInstances: '选择活动实例（空格切换，回车确认）',
+    confirmKill: '杀死 {count} 个活动实例？',
+    killing: '正在杀死实例...',
+    killed: '已杀死 PID {pid}',
+    failed: '失败：{error}',
+    complete: 'Kill 操作完成',
+    select: '选择',
+    back: '返回',
+    columns: {
+      project: '项目',
+      hash: '哈希',
+      type: '类型',
+      pid: 'PID',
+      port: '端口'
+    }
+  },
+
+  // Cleanup Dead
+  cleanupDead: {
+    title: 'Cleanup Dead Instances',
+    noDead: '✓ 未找到死亡实例',
+    selectPrompt: '选择要清理的实例：',
+    selectInstances: '选择死亡实例（空格切换，回车确认）',
+    confirmCleanup: '清理 {count} 个死亡实例？',
+    cleaning: '正在清理状态文件...',
+    cleaned: '状态文件已删除',
+    failed: '失败：{error}',
+    complete: 'Cleanup 操作完成',
+    select: '选择',
+    back: '返回',
+    columns: {
+      project: '项目',
+      hash: '哈希',
+      type: '类型',
+      workDir: '工作目录'
+    }
+  },
+
+  // Kill Zombie
+  killZombie: {
+    title: 'Kill Zombie Instances',
+    noZombies: '✓ 未找到僵尸实例',
+    selectPrompt: '选择要杀死的实例：',
+    selectInstances: '选择僵尸实例（空格切换，回车确认）',
+    confirmKill: '杀死 {count} 个僵尸实例？',
+    killing: '正在杀死实例...',
+    killed: '已杀死 PID {pid}',
+    failed: '失败：{error}',
+    complete: 'Kill 操作完成',
+    select: '选择',
+    back: '返回',
+    columns: {
+      project: '项目',
+      hash: '哈希',
+      type: '类型',
+      pid: 'PID',
+      port: '端口'
+    }
+  },
+
+  // Cleanup Zombie
+  cleanupZombie: {
+    title: 'Cleanup Zombie Instances',
+    noZombies: '✓ 未找到僵尸实例',
+    selectPrompt: '选择要清理的实例：',
+    selectInstances: '选择僵尸实例（空格切换，回车确认）',
+    confirmCleanup: '清理 {count} 个僵尸实例？',
+    cleaning: '正在清理状态文件...',
+    cleaned: '状态文件已删除',
+    failed: '失败：{error}',
+    complete: 'Cleanup 操作完成',
+    select: '选择',
+    back: '返回',
+    columns: {
+      project: '项目',
+      hash: '哈希',
+      type: '类型',
+      pid: 'PID'
+    }
+  },
+
+  // Kill All
+  killAll: {
+    title: 'Kill All Instances',
+    noInstances: '✓ 未找到实例',
+    selectPrompt: '选择要杀死的实例：',
+    selectInstances: '选择实例（空格切换，回车确认）',
+    confirmKill: '杀死 {count} 个实例？',
+    killing: '正在杀死实例...',
+    killed: '已杀死 PID {pid}',
+    failed: '失败：{error}',
+    complete: 'Kill 操作完成',
+    legend: '✓ = 活动 | ⚠ = 僵尸',
+    select: '选择',
+    back: '返回',
+    columns: {
+      project: '项目',
+      hash: '哈希',
+      type: '类型',
+      pid: 'PID',
+      port: '端口'
+    }
+  },
+
+  // Cleanup All
+  cleanupAll: {
+    title: 'Cleanup All Instances',
+    noInstances: '✓ 没有需要清理的实例',
+    selectPrompt: '选择要清理的实例：',
+    selectInstances: '选择实例（空格切换，回车确认）',
+    confirmCleanup: '清理 {count} 个实例？',
+    cleaning: '正在清理状态文件...',
+    cleaned: '状态文件已删除',
+    failed: '失败：{error}',
+    complete: 'Cleanup 操作完成',
+    legend: '✗ = 死亡 | ⚠ = 僵尸',
+    select: '选择',
+    back: '返回',
+    columns: {
+      project: '项目',
+      hash: '哈希',
+      type: '类型',
       workDir: '工作目录'
     }
   },

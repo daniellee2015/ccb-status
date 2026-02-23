@@ -12,6 +12,15 @@ const { showRestartZombie } = require('../src/cli/menus/restart-zombie');
 const { showRestartDead } = require('../src/cli/menus/restart-dead');
 const { showHistory } = require('../src/cli/menus/history');
 const { showInstanceManagement } = require('../src/cli/menus/instance-management');
+const { showKillOperations } = require('../src/cli/menus/kill-operations');
+const { showCleanupOperations } = require('../src/cli/menus/cleanup-operations');
+const { showRestartOperations } = require('../src/cli/menus/restart-operations');
+const { showKillActive } = require('../src/cli/menus/kill-active');
+const { showKillZombie } = require('../src/cli/menus/kill-zombie');
+const { showKillAll } = require('../src/cli/menus/kill-all');
+const { showCleanupDead } = require('../src/cli/menus/cleanup-dead');
+const { showCleanupZombie } = require('../src/cli/menus/cleanup-zombie');
+const { showCleanupAll } = require('../src/cli/menus/cleanup-all');
 const { showCleanup, detectStatus } = require('../src/cli/menus/cleanup');
 const { showTmuxManagement, getTmuxSessions } = require('../src/cli/menus/tmux-management');
 const { showLanguageSettings } = require('../src/cli/menus/language-settings');
@@ -54,168 +63,127 @@ async function main() {
       case 3: // Instance Management
         let detectionResult = null;
         while (true) {
-          const action = await showInstanceManagement(detectionResult);
+          const { action, detection } = await showInstanceManagement(detectionResult);
+          detectionResult = detection;
+
           if (action === 'b. Back') break;
 
-          if (action === 'd. Detect Status') {
-            // Start spinner
+          // Status Detection
+          if (action.startsWith('d. Status Detection')) {
             startSpinner('Detecting status...');
-
-            // Detect
             detectionResult = await detectStatus();
-
-            // Stop spinner and show success
-            stopSpinner('Detection complete');
-            console.log('');
-
-            // Wait a moment before re-rendering
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Loop continues to show results in menu
-            continue;
-          }
-
-          if (action === 'z. Restart Zombie') {
-            // Show restart zombie menu
-            const result = await showRestartZombie();
-
-            // Re-detect after restart
-            if (result === 'completed') {
-              startSpinner('Re-detecting status...');
-              detectionResult = await detectStatus();
-              stopSpinner('Detection complete');
-              console.log('');
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
-            continue;
-          }
-
-          if (action === 'r. Restart Dead') {
-            // Show restart dead menu
-            const result = await showRestartDead();
-
-            // Re-detect after restart
-            if (result === 'completed') {
-              startSpinner('Re-detecting status...');
-              detectionResult = await detectStatus();
-              stopSpinner('Detection complete');
-              console.log('');
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
-            continue;
-          }
-
-          if (action === 'c. Cleanup Zombie Processes') {
-            // Enter cleanup submenu - auto-detect on first entry
-            startSpinner('Detecting status...');
-            let detection = await detectStatus();
             stopSpinner('Detection complete');
             console.log('');
             await new Promise(resolve => setTimeout(resolve, 500));
+            continue;
+          }
 
+          // Kill Operations submenu
+          if (action.startsWith('1. Kill Operations')) {
             while (true) {
-              const { action: cleanupAction, lastDetection } = await showCleanup(detection);
+              const killAction = await showKillOperations();
+              if (killAction === 'b. Back' || killAction.startsWith('b.')) break;
 
-              if (cleanupAction === 'b. Back') break;
-
-              if (cleanupAction === 'd. Detect Status' || cleanupAction === 'd. Re-detect') {
-                // Start spinner
-                startSpinner('Detecting status...');
-
-                detection = await detectStatus();
-
-                // Stop spinner and show success
-                stopSpinner('Detection complete');
-                console.log('');
-
-                // Wait a moment before re-rendering
-                await new Promise(resolve => setTimeout(resolve, 500));
-                continue;
-              }
-
-              if (cleanupAction === 'c. Cleanup All' && detection && detection.zombies.length > 0) {
-                // Confirm before cleanup
-                const readline = require('readline');
-                const rl = readline.createInterface({
-                  input: process.stdin,
-                  output: process.stdout
-                });
-
-                await new Promise((resolve) => {
-                  rl.question(`\n  ⚠️  This will kill ${detection.zombies.length} zombie process(es). Continue? (y/N): `, async (answer) => {
-                    rl.close();
-
-                    if (answer.trim().toLowerCase() !== 'y') {
-                      console.log('\n  Cleanup cancelled\n');
-                      setTimeout(resolve, 500);
-                      return;
-                    }
-
-                    console.log('\n  Cleaning up zombie processes...\n');
-
-                    // Call ccb-cleanup to kill zombie daemons
-                    const pids = detection.zombies.map(z => z.pid).join(' ');
-
-                    try {
-                      // Use ccb-cleanup to kill each zombie PID
-                      for (const zombie of detection.zombies) {
-                        try {
-                          execSync(`ccb-cleanup --kill-pid ${zombie.pid}`, {
-                            encoding: 'utf8',
-                            stdio: 'pipe'
-                          });
-                          console.log(`  ✓ Killed PID ${zombie.pid}`);
-                        } catch (e) {
-                          console.log(`  ✗ Failed to kill PID ${zombie.pid}`);
-                        }
-                      }
-                      console.log(`\n  Cleanup complete\n`);
-                    } catch (e) {
-                      console.log(`\n  ✗ Cleanup failed: ${e.message}\n`);
-                    }
-
-                    await new Promise(resolve2 => setTimeout(resolve2, 1000));
-
-                    // Re-detect after cleanup
-                    startSpinner('Re-detecting status...');
-                    detection = await detectStatus();
-                    stopSpinner('Detection complete');
-                    console.log('');
-                    await new Promise(resolve2 => setTimeout(resolve2, 500));
-
-                    resolve();
-                  });
-                });
-              }
-
-              if (cleanupAction === 'z. Restart Zombie') {
-                // Show restart zombie menu
-                const result = await showRestartZombie();
-
-                // Re-detect after restart
+              if (killAction.startsWith('1. Kill Active Instances')) {
+                const result = await showKillActive();
                 if (result === 'completed') {
                   startSpinner('Re-detecting status...');
-                  detection = await detectStatus();
+                  detectionResult = await detectStatus();
                   stopSpinner('Detection complete');
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
-              }
-
-              if (cleanupAction === 'r. Restart Dead') {
-                // Show restart dead menu
-                const result = await showRestartDead();
-
-                // Re-detect after restart
+              } else if (killAction.startsWith('2. Kill Zombie Instances')) {
+                const result = await showKillZombie();
                 if (result === 'completed') {
                   startSpinner('Re-detecting status...');
-                  detection = await detectStatus();
+                  detectionResult = await detectStatus();
+                  stopSpinner('Detection complete');
+                  console.log('');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              } else if (killAction.startsWith('3. Kill All Instances')) {
+                const result = await showKillAll();
+                if (result === 'completed') {
+                  startSpinner('Re-detecting status...');
+                  detectionResult = await detectStatus();
                   stopSpinner('Detection complete');
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
               }
             }
+            continue;
+          }
+
+          // Cleanup Operations submenu
+          if (action.startsWith('2. Cleanup Operations')) {
+            while (true) {
+              const cleanupAction = await showCleanupOperations();
+              if (cleanupAction === 'b. Back' || cleanupAction.startsWith('b.')) break;
+
+              if (cleanupAction.startsWith('1. Cleanup Dead States')) {
+                const result = await showCleanupDead();
+                if (result === 'completed') {
+                  startSpinner('Re-detecting status...');
+                  detectionResult = await detectStatus();
+                  stopSpinner('Detection complete');
+                  console.log('');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              } else if (cleanupAction.startsWith('2. Cleanup Zombie States')) {
+                const result = await showCleanupZombie();
+                if (result === 'completed') {
+                  startSpinner('Re-detecting status...');
+                  detectionResult = await detectStatus();
+                  stopSpinner('Detection complete');
+                  console.log('');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              } else if (cleanupAction.startsWith('3. Cleanup All States')) {
+                const result = await showCleanupAll();
+                if (result === 'completed') {
+                  startSpinner('Re-detecting status...');
+                  detectionResult = await detectStatus();
+                  stopSpinner('Detection complete');
+                  console.log('');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              }
+            }
+            continue;
+          }
+
+          // Restart Operations submenu
+          if (action.startsWith('3. Restart Operations')) {
+            while (true) {
+              const restartAction = await showRestartOperations();
+              if (restartAction === 'b. Back') break;
+
+              if (restartAction.startsWith('1. Restart Zombie Instances')) {
+                const result = await showRestartZombie();
+                if (result === 'completed') {
+                  startSpinner('Re-detecting status...');
+                  detectionResult = await detectStatus();
+                  stopSpinner('Detection complete');
+                  console.log('');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              } else if (restartAction.startsWith('2. Restart Dead Instances')) {
+                const result = await showRestartDead();
+                if (result === 'completed') {
+                  startSpinner('Re-detecting status...');
+                  detectionResult = await detectStatus();
+                  stopSpinner('Detection complete');
+                  console.log('');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              } else if (restartAction.startsWith('3. Restart All Instances')) {
+                console.log('\n  🚧 Coming soon: Restart All Instances\n');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+            continue;
           }
         }
         break;
