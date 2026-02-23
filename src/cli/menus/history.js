@@ -56,6 +56,8 @@ async function showHistory() {
             // Instance exists, get current status
             if (currentInst.status === 'active') {
               statusDisplay = tc('history.status.active');
+            } else if (currentInst.status === 'orphaned') {
+              statusDisplay = tc('history.status.orphaned');
             } else if (currentInst.status === 'zombie') {
               statusDisplay = tc('history.status.zombie');
             } else {

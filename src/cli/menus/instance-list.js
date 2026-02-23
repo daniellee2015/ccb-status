@@ -35,6 +35,8 @@ async function showInstanceList() {
     let statusDisplay;
     if (inst.status === 'active') {
       statusDisplay = tc('instanceList.status.active');
+    } else if (inst.status === 'orphaned') {
+      statusDisplay = tc('instanceList.status.orphaned');
     } else if (inst.status === 'zombie') {
       statusDisplay = tc('instanceList.status.zombie');
     } else {
