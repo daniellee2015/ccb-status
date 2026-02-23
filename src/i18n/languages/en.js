@@ -430,5 +430,10 @@ module.exports = {
       back: 'B Back',
       refresh: 'R Refresh'
     }
+  },
+
+  // Confirmation
+  confirmation: {
+    legend: '✓tmux = Has tmux window | ⚠no-tmux = No tmux window (may be orphaned)'
   }
 };

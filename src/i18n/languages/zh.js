@@ -430,5 +430,10 @@ module.exports = {
       back: 'B 返回',
       refresh: 'R 刷新'
     }
+  },
+
+  // Confirmation
+  confirmation: {
+    legend: '✓tmux = 有 tmux 窗口 | ⚠no-tmux = 无 tmux 窗口（可能是孤儿进程）'
   }
 };

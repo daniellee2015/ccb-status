@@ -29,6 +29,15 @@ function displayConfirmationTable(instances, warningMessage, tc, columnsKey) {
     const shortHash = instanceHash.substring(0, 8);
     const type = inst.managed ? '[Multi]' : '[CCB]';
 
+    // Show detailed status with tmux info
+    let statusDisplay = inst.status || '-';
+    if (inst.tmuxPane && inst.tmuxPane.title) {
+      statusDisplay = `${inst.status} ✓tmux`;
+    } else if (inst.status === 'active') {
+      // This shouldn't happen, but flag it if it does
+      statusDisplay = `${inst.status} ⚠no-tmux`;
+    }
+
     return {
       no: idx + 1,
       project: displayName.project,
@@ -36,7 +45,7 @@ function displayConfirmationTable(instances, warningMessage, tc, columnsKey) {
       hash: shortHash,
       type: type,
       pid: inst.pid || '-',
-      status: inst.status || '-'
+      status: statusDisplay
     };
   });
 
@@ -48,7 +57,7 @@ function displayConfirmationTable(instances, warningMessage, tc, columnsKey) {
       { header: tc(`${columnsKey}.hash`), key: 'hash', align: 'left', width: 10 },
       { header: tc(`${columnsKey}.type`), key: 'type', align: 'left', width: 9 },
       { header: tc(`${columnsKey}.pid`), key: 'pid', align: 'right', width: 8 },
-      { header: tc(`${columnsKey}.status`), key: 'status', align: 'left', width: 10 }
+      { header: tc(`${columnsKey}.status`), key: 'status', align: 'left', width: 15 }
     ],
     data: tableData,
     showBorders: true,
@@ -56,6 +65,8 @@ function displayConfirmationTable(instances, warningMessage, tc, columnsKey) {
     borderColor: '\x1b[33m'  // Yellow border for warning
   });
 
+  console.log('');
+  console.log(`  \x1b[2m${tc('confirmation.legend')}\x1b[0m`);
   console.log('');
 }
 
