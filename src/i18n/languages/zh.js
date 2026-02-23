@@ -424,12 +424,13 @@ module.exports = {
 
   // Common
   common: {
+    cancel: '取消',
     hints: {
       navigate: '↑↓ 导航',
       select: 'Enter 选择',
       back: 'B 返回',
       refresh: 'R 刷新',
-      checkboxHelp: '使用 ↑↓ 导航，空格 选择/取消，回车 确认，ESC 取消'
+      checkboxHelp: '使用 ↑↓ 导航，空格 选择/取消，回车 确认，或选择 "0. 取消"'
     }
   },
 

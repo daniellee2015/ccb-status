@@ -88,6 +88,9 @@ async function selectInstances(instances, tc, promptKey) {
     return `${idx + 1}. ${displayName} (${shortHash}) - PID ${inst.pid || 'N/A'}`;
   });
 
+  // Add cancel option at the end
+  checkboxOptions.push(`0. ${tc('common.cancel')}`);
+
   const checkboxResult = await menu.checkbox({
     prompt: tc(promptKey),
     options: checkboxOptions,
@@ -96,6 +99,12 @@ async function selectInstances(instances, tc, promptKey) {
 
   // Check if user cancelled or selected nothing
   if (!checkboxResult || !checkboxResult.indices || checkboxResult.indices.length === 0) {
+    return null;
+  }
+
+  // Check if user selected the cancel option (last option)
+  const cancelIndex = checkboxOptions.length - 1;
+  if (checkboxResult.indices.includes(cancelIndex)) {
     return null;
   }
 

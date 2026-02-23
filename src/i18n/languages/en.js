@@ -424,12 +424,13 @@ module.exports = {
 
   // Common
   common: {
+    cancel: 'Cancel',
     hints: {
       navigate: '↑↓ Navigate',
       select: 'Enter Select',
       back: 'B Back',
       refresh: 'R Refresh',
-      checkboxHelp: 'Use ↑↓ to navigate, Space to select/deselect, Enter to confirm, ESC to cancel'
+      checkboxHelp: 'Use ↑↓ to navigate, Space to select/deselect, Enter to confirm, or select "0. Cancel"'
     }
   },
 
