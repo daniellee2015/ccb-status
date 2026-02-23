@@ -23,23 +23,23 @@ async function showInstanceManagement(lastDetection = null) {
       render: () => {
         // Show detection results
         console.log(`  ${tc('instanceManagement.statusSummary')}`);
-        console.log(`    \\x1b[32m${tc('instanceManagement.active', { count: lastDetection.active.length })}\\x1b[0m`);
-        console.log(`    \\x1b[36m${tc('instanceManagement.orphaned', { count: lastDetection.orphaned.length })}\\x1b[0m`);
-        console.log(`    \\x1b[33m${tc('instanceManagement.zombie', { count: lastDetection.zombies.length })}\\x1b[0m`);
-        console.log(`    \\x1b[90m${tc('instanceManagement.dead', { count: lastDetection.dead.length })}\\x1b[0m`);
+        console.log(`    \x1b[32m${tc('instanceManagement.active', { count: lastDetection.active.length })}\x1b[0m`);
+        console.log(`    \x1b[36m${tc('instanceManagement.orphaned', { count: lastDetection.orphaned.length })}\x1b[0m`);
+        console.log(`    \x1b[33m${tc('instanceManagement.zombie', { count: lastDetection.zombies.length })}\x1b[0m`);
+        console.log(`    \x1b[90m${tc('instanceManagement.dead', { count: lastDetection.dead.length })}\x1b[0m`);
         console.log('');
 
         if (lastDetection.orphaned.length === 0 && lastDetection.zombies.length === 0 && lastDetection.dead.length === 0) {
-          console.log(`  \\x1b[32m${tc('instanceManagement.allHealthy')}\\x1b[0m`);
+          console.log(`  \x1b[32m${tc('instanceManagement.allHealthy')}\x1b[0m`);
         } else {
           if (lastDetection.orphaned.length > 0) {
-            console.log(`  \\x1b[36m${tc('instanceManagement.foundOrphaned', { count: lastDetection.orphaned.length })}\\x1b[0m`);
+            console.log(`  \x1b[36m${tc('instanceManagement.foundOrphaned', { count: lastDetection.orphaned.length })}\x1b[0m`);
           }
           if (lastDetection.zombies.length > 0) {
-            console.log(`  \\x1b[33m${tc('instanceManagement.foundZombies', { count: lastDetection.zombies.length })}\\x1b[0m`);
+            console.log(`  \x1b[33m${tc('instanceManagement.foundZombies', { count: lastDetection.zombies.length })}\x1b[0m`);
           }
           if (lastDetection.dead.length > 0) {
-            console.log(`  \\x1b[90m${tc('instanceManagement.foundDead', { count: lastDetection.dead.length })}\\x1b[0m`);
+            console.log(`  \x1b[90m${tc('instanceManagement.foundDead', { count: lastDetection.dead.length })}\x1b[0m`);
           }
         }
       }
