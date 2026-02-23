@@ -144,14 +144,22 @@ async function showCleanupZombie() {
       let stateRemoved = false;
       let sessionRemoved = 0;
 
-      // First kill the zombie process with validation
+      // First try to kill the zombie process with validation
+      // For zombie processes (<defunct>), killing may fail but that's OK
       if (instance.pid) {
         const killResult = await safeKillProcess(instance.pid, instance.workDir);
         if (killResult.success) {
           killed = true;
-        } else if (!killResult.error.includes('Process not found')) {
-          // Only throw if it's not "process not found" (already dead is OK)
-          throw new Error(`Failed to kill process: ${killResult.error}`);
+        } else if (killResult.error.includes('Process not found')) {
+          // Process already dead, that's fine
+          killed = false;
+        } else if (killResult.error.includes('Not a CCB process')) {
+          // Might be a <defunct> zombie process, skip killing and just cleanup
+          killed = false;
+        } else {
+          // Other errors, log but continue with cleanup
+          console.log(`  \x1b[33m⚠\x1b[0m ${projectName} - Could not kill process: ${killResult.error}`);
+          killed = false;
         }
       }
 
