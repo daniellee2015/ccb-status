@@ -5,6 +5,9 @@
 
 const { renderPage, renderTable, menu } = require('cli-menu-kit');
 const { getCCBInstances } = require('../../services/instance-service');
+const { getHistory } = require('../../services/history-service');
+const { formatInstanceName } = require('../../services/display-formatter');
+const { displayConfirmationTable } = require('../../services/confirmation-helper');
 const { tc } = require('../../i18n');
 const { safeKillProcess, validateWorkDir } = require('../../utils/pid-validator');
 const path = require('path');
@@ -14,6 +17,7 @@ async function showCleanupZombie() {
   // Get all instances and filter zombies
   const instances = await getCCBInstances();
   const zombieInstances = instances.filter(inst => inst.status === 'zombie');
+  const historyMap = getHistory();
 
   if (zombieInstances.length === 0) {
     const result = await renderPage({
