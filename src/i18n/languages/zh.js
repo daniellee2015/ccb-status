@@ -362,18 +362,23 @@ module.exports = {
     noZombies: '✓ 未找到僵尸实例',
     selectPrompt: '选择要清理的实例：',
     selectInstances: '选择僵尸实例（空格切换，回车确认）',
-    confirmCleanup: '清理 {count} 个僵尸实例？',
+    confirmationWarning: '警告：即将清理以下僵尸实例',
+    confirmPrompt: '确认清理 {count} 个僵尸实例？',
     cleaning: '正在清理状态文件...',
     cleaned: '状态文件已删除',
+    killFailed: 'Kill 失败：{error}',
     failed: '失败：{error}',
     complete: 'Cleanup 操作完成',
     select: '选择',
     back: '返回',
     columns: {
       project: '项目',
+      parent: '父项目',
       hash: '哈希',
       type: '类型',
-      pid: 'PID'
+      pid: 'PID',
+      port: '端口',
+      status: '状态'
     }
   },
 
