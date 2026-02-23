@@ -94,6 +94,9 @@ async function showKillActive() {
     return 'back';
   }
 
+  console.log('[DEBUG] User selected:', result.value);
+  console.log('[DEBUG] Showing checkbox menu...');
+
   // Show checkbox menu for selection
   const checkboxOptions = activeInstances.map((inst, idx) => {
     const projectName = path.basename(inst.workDir);
@@ -107,18 +110,27 @@ async function showKillActive() {
     options: checkboxOptions
   });
 
+  console.log('[DEBUG] Checkbox result:', checkboxResult);
+
   if (!checkboxResult || !checkboxResult.indices || checkboxResult.indices.length === 0) {
+    console.log('[DEBUG] No selection or cancelled');
     return 'back';
   }
 
   // Confirm before killing
   const selectedInstances = checkboxResult.indices.map(idx => activeInstances[idx]);
+  console.log('[DEBUG] Selected instances:', selectedInstances.length);
+  console.log('[DEBUG] Showing confirmation...');
+
   const confirmResult = await menu.boolean({
     question: tc('killActive.confirmKill', { count: selectedInstances.length }),
     defaultValue: false
   });
 
+  console.log('[DEBUG] Confirm result:', confirmResult);
+
   if (!confirmResult.value) {
+    console.log('[DEBUG] User cancelled');
     return 'back';
   }
 
