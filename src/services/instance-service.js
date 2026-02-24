@@ -276,13 +276,13 @@ async function getCCBInstances() {
   // Get all tmux panes once (for performance)
   let tmuxPanesMap = new Map();
   try {
-    const tmuxResult = execSync('tmux list-panes -a -F "#{pane_id}\\t#{pane_current_path}\\t#{pane_title}"', {
+    const tmuxResult = execSync('tmux list-panes -a -F "#{pane_id}\\\\t#{pane_current_path}\\\\t#{pane_title}"', {
       encoding: 'utf8',
       timeout: 2000
     });
     for (const line of tmuxResult.split('\n')) {
       if (!line) continue;
-      const parts = line.split('\t');
+      const parts = line.split('\\t');
       if (parts.length >= 3) {
         const paneId = parts[0];
         const panePath = parts[1];
