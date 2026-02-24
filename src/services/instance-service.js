@@ -274,20 +274,25 @@ async function getCCBInstances() {
   const ccbProcesses = getRunningCCBProcesses();
 
   // Get all tmux panes once (for performance)
+  // Only consider panes in attached sessions
   let tmuxPanesMap = new Map();
   try {
-    const tmuxResult = execSync('tmux list-panes -a -F "#{pane_id}\\\\t#{pane_current_path}\\\\t#{pane_title}"', {
+    const tmuxResult = execSync('tmux list-panes -a -F "#{session_attached}\\\\t#{pane_id}\\\\t#{pane_current_path}\\\\t#{pane_title}"', {
       encoding: 'utf8',
       timeout: 2000
     });
     for (const line of tmuxResult.split('\n')) {
       if (!line) continue;
       const parts = line.split('\\t');
-      if (parts.length >= 3) {
-        const paneId = parts[0];
-        const panePath = parts[1];
-        const paneTitle = parts[2];
-        tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle });
+      if (parts.length >= 4) {
+        const sessionAttached = parts[0];
+        const paneId = parts[1];
+        const panePath = parts[2];
+        const paneTitle = parts[3];
+        // Only include panes from attached sessions
+        if (sessionAttached === '1') {
+          tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle });
+        }
       }
     }
   } catch (e) {
