@@ -179,8 +179,8 @@ function getUptime(startedAt) {
  */
 function getRunningCCBProcesses() {
   try {
-    // Step 1: Use pgrep to find CCB process PIDs directly (much faster than ps aux | grep)
-    const result = execSync('pgrep -f "/ccb$|/ccb " 2>/dev/null || true', {
+    // Step 1: Use ps + grep to find CCB process PIDs (pgrep misses some processes)
+    const result = execSync('ps aux | grep -E "/ccb$|/ccb " | grep -v grep', {
       encoding: 'utf8',
       timeout: 2000
     });
@@ -188,7 +188,9 @@ function getRunningCCBProcesses() {
     const ccbPids = [];
     for (const line of result.split('\n')) {
       if (!line) continue;
-      const pid = parseInt(line.trim());
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 11) continue;
+      const pid = parseInt(parts[1]);
       if (pid) ccbPids.push(pid);
     }
 
@@ -292,7 +294,7 @@ async function getCCBInstances() {
         // Only include panes from attached sessions with CCB-related titles
         // CCB panes have titles like "◇  Ready (instance-name)" or "CCB-Codex"
         const isCCBPane = paneTitle.includes('Ready') || paneTitle.includes('CCB-') || paneTitle.includes('OpenCode') || paneTitle.includes('Gemini');
-        if (isCCBPane) {
+        if (isCCBPane && sessionAttached === '1') {
           tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle });
         }
       }
