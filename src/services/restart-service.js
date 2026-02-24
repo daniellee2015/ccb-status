@@ -219,10 +219,120 @@ async function restartDead(instance) {
   }
 }
 
+/**
+ * Recover a disconnected instance
+ * Steps: kill CCB daemon -> wait -> cd to work dir -> restart CCB in tmux
+ * @param {object} instance - Instance object
+ * @returns {object} - Result object {success, message}
+ */
+async function recoverDisconnected(instance) {
+  try {
+    const projectName = path.basename(instance.workDir);
+
+    // Step 1: Kill CCB daemon process
+    if (instance.pid) {
+      try {
+        process.kill(instance.pid, 'SIGTERM'); // Use SIGTERM first for graceful shutdown
+        console.log(`  Sent SIGTERM to CCB daemon PID ${instance.pid}`);
+
+        // Wait a bit for graceful shutdown
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Check if still alive, force kill if needed
+        try {
+          process.kill(instance.pid, 0); // Check if process exists
+          process.kill(instance.pid, 'SIGKILL'); // Force kill
+          console.log(`  Force killed CCB daemon PID ${instance.pid}`);
+        } catch (e) {
+          console.log(`  CCB daemon PID ${instance.pid} terminated gracefully`);
+        }
+      } catch (e) {
+        console.log(`  CCB daemon PID ${instance.pid} already dead`);
+      }
+    }
+
+    // Step 2: Wait for process cleanup
+    console.log(`  Waiting for cleanup...`);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Step 3: Get restart command
+    const command = getRestartCommand(instance);
+
+    // Step 4: Check if tmux pane exists
+    if (instance.tmuxPane && tmuxPaneExists(instance.tmuxPane.id)) {
+      // Pane exists, restart in existing pane
+      const paneId = instance.tmuxPane.id;
+      console.log(`  Using existing tmux pane ${paneId}`);
+
+      // Clear any existing input
+      execSync(`tmux send-keys -t ${paneId} C-c`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Change to work directory
+      console.log(`  Changing to work directory: ${instance.workDir}`);
+      execSync(`tmux send-keys -t ${paneId} "cd ${instance.workDir}" Enter`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Restart CCB
+      console.log(`  Restarting with command: ${command}`);
+      execSync(`tmux send-keys -t ${paneId} "${command}" Enter`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+    } else {
+      // Pane doesn't exist, create new window
+      console.log(`  Tmux pane not found, creating new window`);
+      const windowName = `CCB-${projectName}`;
+      execSync(`tmux new-window -n "${windowName}"`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+
+      // Change to work directory
+      console.log(`  Changing to work directory: ${instance.workDir}`);
+      execSync(`tmux send-keys "cd ${instance.workDir}" Enter`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+
+      // Wait a bit
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Start CCB
+      console.log(`  Starting with command: ${command}`);
+      execSync(`tmux send-keys "${command}" Enter`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+    }
+
+    // Step 5: Wait for CCB to start
+    console.log(`  Waiting for CCB to start...`);
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    return {
+      success: true,
+      message: 'Recovered successfully'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message
+    };
+  }
+}
+
 module.exports = {
   getActiveLLMs,
   getRestartCommand,
   tmuxPaneExists,
   restartZombie,
-  restartDead
+  restartDead,
+  recoverDisconnected
 };

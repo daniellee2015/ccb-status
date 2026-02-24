@@ -36,13 +36,14 @@ module.exports = {
     title: '活动实例列表',
     noInstances: '未找到 CCB 实例。',
     pressEnter: '按 Enter 键返回...',
-    legend: '✓ 活动  ⊙ 后台残留  ⚠ 僵尸  ✗ 已停止  |  [CCB] 独立  [Multi] 托管',
+    legend: '✓ 活动  ⊙ 后台残留  ⚠ 僵尸/连接断开  ✗ 已停止  |  [CCB] 独立  [Multi] 托管',
     status: {
       active: '✓ 活动',
       zombie: '⚠ 僵尸',
       dead: '✗ 已停止',
       orphaned: '⊙ 后台残留',
-      removed: '⊗ 已删除'
+      removed: '⊗ 已删除',
+      disconnected: '⚠ 连接断开'
     },
     type: {
       ccb: '[CCB]',
@@ -99,6 +100,8 @@ module.exports = {
       active: '✓ 活动',
       zombie: '⚠ 僵尸',
       dead: '✗ 死亡',
+      orphaned: '⊙ 后台残留',
+      disconnected: '⚠ 连接断开',
       removed: '⊗ 已移除'
     },
     type: {
@@ -126,10 +129,12 @@ module.exports = {
     active: '✓ 活动：  {count}',
     orphaned: '⊙ 后台残留：  {count}',
     zombie: '⚠ 僵尸：  {count}',
+    disconnected: '⚠ 连接断开：  {count}',
     dead: '✗ 已停止：  {count}',
     allHealthy: '✓ 所有实例都健康',
     foundOrphaned: '⊙ 发现 {count} 个后台残留进程（窗口已关闭）',
     foundZombies: '⚠ 发现 {count} 个僵尸实例',
+    foundDisconnected: '⚠ 发现 {count} 个连接断开的实例（状态文件丢失）',
     foundDead: '✗ 发现 {count} 个已停止实例',
 
     // Menu scenarios
@@ -163,6 +168,8 @@ module.exports = {
     restartZombieHint: '杀死卡死进程并重启',
     restartDead: 'Restart Dead Instances',
     restartDeadHint: '重启已退出的进程',
+    recoverDisconnected: 'Recover Disconnected Instances',
+    recoverDisconnectedHint: '恢复状态文件丢失的实例',
     restartAll: 'Restart All Instances',
     restartAllHint: '重启所有实例',
 
@@ -290,6 +297,33 @@ module.exports = {
       type: '类型',
       tmux: 'Tmux',
       workDir: '工作目录'
+    }
+  },
+
+  // Recover Disconnected
+  recoverDisconnected: {
+    title: '恢复断开连接的实例',
+    noDisconnected: '✓ 未找到断开连接的实例',
+    selectPrompt: '选择要恢复的实例：',
+    checkboxTitle: '选择断开连接的实例（空格切换，回车确认）',
+    confirmationWarning: '警告：即将恢复以下断开连接的实例（杀死 CCB 守护进程然后重启）',
+    confirmPrompt: '确认恢复 {count} 个断开连接的实例？',
+    recovering: '正在恢复实例...',
+    processing: '正在处理 {project} [{hash}]...',
+    successCount: '✓ 成功恢复 {count} 个实例',
+    failCount: '✗ 恢复失败 {count} 个实例',
+    pressEnter: '按 Enter 键继续...',
+    select: '选择',
+    back: '返回',
+    columns: {
+      project: '项目',
+      parent: '父项目',
+      hash: '哈希',
+      type: '类型',
+      pid: 'PID',
+      port: '端口',
+      status: '状态',
+      tmux: 'Tmux'
     }
   },
 

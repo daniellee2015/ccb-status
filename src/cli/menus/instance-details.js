@@ -30,8 +30,16 @@ async function showInstanceDetails(instance) {
       projectName = parts[ccbIndex - 1];
     }
   }
-  const instanceHash = path.basename(path.dirname(instance.stateFile));
-  const shortHash = instanceHash.substring(0, 8);
+
+  // Get instance hash - handle disconnected instances without stateFile
+  let shortHash;
+  if (instance.stateFile) {
+    const instanceHash = path.basename(path.dirname(instance.stateFile));
+    shortHash = instanceHash.substring(0, 8);
+  } else {
+    // For disconnected instances, use PID as identifier
+    shortHash = instance.pid ? `PID:${instance.pid}` : 'Unknown';
+  }
   const title = `${projectName} (${shortHash})`;
 
   const result = await renderPage({

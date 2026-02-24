@@ -25,7 +25,7 @@ function isPidAlive(pid) {
 /**
  * Check if port is listening (lightweight check)
  */
-function isPortListening(port, host = '127.0.0.1', timeout = 100) {
+function isPortListening(port, host = '127.0.0.1', timeout = 50) {
   return new Promise((resolve) => {
     const socket = new net.Socket();
 
@@ -175,73 +175,229 @@ function getUptime(startedAt) {
 }
 
 /**
- * Get all CCB instances
+ * Get running CCB processes from system
+ */
+function getRunningCCBProcesses() {
+  try {
+    // Step 1: Use pgrep to find CCB process PIDs directly (much faster than ps aux | grep)
+    const result = execSync('pgrep -f "/ccb$|/ccb " 2>/dev/null || true', {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+
+    const ccbPids = [];
+    for (const line of result.split('\n')) {
+      if (!line) continue;
+      const pid = parseInt(line.trim());
+      if (pid) ccbPids.push(pid);
+    }
+
+    if (ccbPids.length === 0) return [];
+
+    // Step 2: Get all Python process working directories in one lsof call
+    const lsofResult = execSync('lsof -a -d cwd -c Python 2>/dev/null', {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+
+    // Build a map of PID -> workDir
+    const pidWorkDirMap = new Map();
+    for (const line of lsofResult.split('\n')) {
+      if (!line || !line.includes('cwd')) continue;
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 9) continue;
+      const pid = parseInt(parts[1]);
+      const workDir = parts.slice(8).join(' '); // Path might contain spaces
+      if (pid && workDir) {
+        pidWorkDirMap.set(pid, workDir);
+      }
+    }
+
+    // Step 3: Match CCB PIDs with their work directories
+    const processes = [];
+    for (const pid of ccbPids) {
+      const workDir = pidWorkDirMap.get(pid);
+      if (workDir) {
+        processes.push({ pid, workDir });
+      }
+    }
+
+    return processes;
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Check if askd daemon is accessible for a work directory
+ */
+async function checkAskdConnection(workDir) {
+  const askdJsonPath = path.join(os.homedir(), '.cache', 'ccb', 'projects');
+
+  // Try to find askd.json by scanning cache directory
+  try {
+    const projectDirs = fs.readdirSync(askdJsonPath);
+    for (const projectDir of projectDirs) {
+      const stateFile = path.join(askdJsonPath, projectDir, 'askd.json');
+      if (fs.existsSync(stateFile)) {
+        const data = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+        if (data.work_dir === workDir) {
+          // Found matching askd.json
+          const port = data.port || 0;
+          const host = data.host || '127.0.0.1';
+          const connected = await isPortListening(port, host);
+          return {
+            found: true,
+            connected: connected,
+            port: port,
+            pid: data.pid
+          };
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  return { found: false, connected: false };
+}
+
+/**
+ * Get all CCB instances (from state files + running processes)
  */
 async function getCCBInstances() {
   const cacheDir = path.join(os.homedir(), '.cache', 'ccb', 'projects');
-  if (!fs.existsSync(cacheDir)) {
-    return [];
+  const instances = [];
+  const processedWorkDirs = new Set();
+
+  // Get all running CCB processes once (for performance)
+  const ccbProcesses = getRunningCCBProcesses();
+
+  // Get all tmux panes once (for performance)
+  let tmuxPanesMap = new Map();
+  try {
+    const tmuxResult = execSync('tmux list-panes -a -F "#{pane_id}\\t#{pane_current_path}\\t#{pane_title}"', {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+    for (const line of tmuxResult.split('\n')) {
+      if (!line) continue;
+      const parts = line.split('\t');
+      if (parts.length >= 3) {
+        const paneId = parts[0];
+        const panePath = parts[1];
+        const paneTitle = parts[2];
+        tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle });
+      }
+    }
+  } catch (e) {
+    // tmux not running or error
   }
 
-  const instances = [];
-  const projectDirs = fs.readdirSync(cacheDir);
+  // Step 1: Scan state files (existing logic)
+  if (fs.existsSync(cacheDir)) {
+    const projectDirs = fs.readdirSync(cacheDir);
 
-  for (const projectDir of projectDirs) {
-    const stateFile = path.join(cacheDir, projectDir, 'askd.json');
-    if (!fs.existsSync(stateFile)) continue;
+    for (const projectDir of projectDirs) {
+      const stateFile = path.join(cacheDir, projectDir, 'askd.json');
+      if (!fs.existsSync(stateFile)) continue;
 
-    try {
-      const data = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
-      const pid = parseInt(data.pid || 0);
-      const port = data.port || 0;
-      const host = data.host || '127.0.0.1';
-      const workDir = data.work_dir || projectDir;
+      try {
+        const data = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+        const pid = parseInt(data.pid || 0);
+        const port = data.port || 0;
+        const host = data.host || '127.0.0.1';
+        const workDir = data.work_dir || projectDir;
 
-      // Determine status: Active, Orphaned, Zombie, or Dead
-      let status = 'dead';
-      let isAlive = false;
-      const tmuxPane = getTmuxPaneInfo(workDir);
+        processedWorkDirs.add(workDir);
 
-      if (isPidAlive(pid)) {
-        // PID exists, check if port is listening
-        const portListening = await isPortListening(port, host);
-        if (portListening) {
-          // Process running and port listening
-          // Check if there's a corresponding tmux window
-          if (tmuxPane) {
-            status = 'active';  // Has tmux window, truly active
-            isAlive = true;
+        // Determine status: Active, Orphaned, Zombie, or Dead
+        let status = 'dead';
+        let isAlive = false;
+        const tmuxPane = tmuxPanesMap.get(workDir) || null;
+
+        // Check if CCB process is actually running (not just askd daemon)
+        const ccbProcess = ccbProcesses.find(p => p.workDir === workDir);
+
+        if (isPidAlive(pid)) {
+          // askd daemon PID exists, check if port is listening
+          const portListening = await isPortListening(port, host);
+          if (portListening) {
+            // askd daemon running and port listening
+            // But we need to check if CCB process is also running
+            if (ccbProcess) {
+              // CCB process is running
+              if (tmuxPane) {
+                status = 'active';  // Has tmux window, truly active
+                isAlive = true;
+              } else {
+                status = 'orphaned';  // No tmux window, orphaned process
+                isAlive = false;
+              }
+            } else {
+              // askd daemon running but CCB process not running
+              status = 'zombie';  // Zombie state
+              isAlive = false;
+            }
           } else {
-            status = 'orphaned';  // No tmux window, orphaned process
-            isAlive = false;
+            status = 'zombie';
+            isAlive = false; // Zombie is considered not alive
           }
         } else {
-          status = 'zombie';
-          isAlive = false; // Zombie is considered not alive
+          status = 'dead';
+          isAlive = false;
         }
-      } else {
-        status = 'dead';
-        isAlive = false;
-      }
 
-      instances.push({
-        workDir: workDir,
-        pid: pid,
-        port: port,
-        host: host,
-        status: status,
-        isAlive: isAlive,
-        stateFile: stateFile,
-        startedAt: data.started_at,
-        parentPid: data.parent_pid,
-        managed: data.managed,
-        tmuxPane: tmuxPane,
-        llmStatus: getLLMStatus(workDir),
-        uptime: getUptime(data.started_at)
-      });
-    } catch (e) {
-      // Skip invalid state files
+        instances.push({
+          workDir: workDir,
+          pid: pid,
+          port: port,
+          host: host,
+          status: status,
+          isAlive: isAlive,
+          stateFile: stateFile,
+          startedAt: data.started_at,
+          parentPid: data.parent_pid,
+          managed: data.managed,
+          tmuxPane: tmuxPane,
+          llmStatus: getLLMStatus(workDir),
+          uptime: getUptime(data.started_at)
+        });
+      } catch (e) {
+        // Skip invalid state files
+      }
     }
+  }
+
+  // Step 2: Scan running CCB processes (new logic)
+  // Use the ccbProcesses already fetched above
+
+  for (const proc of ccbProcesses) {
+    // Skip if already processed from state file
+    if (processedWorkDirs.has(proc.workDir)) continue;
+
+    processedWorkDirs.add(proc.workDir);
+
+    // This is a CCB process without state file - Disconnected state
+    const tmuxPane = tmuxPanesMap.get(proc.workDir) || null;
+    const askdInfo = await checkAskdConnection(proc.workDir);
+
+    instances.push({
+      workDir: proc.workDir,
+      pid: proc.pid,
+      port: askdInfo.port || 0,
+      host: '127.0.0.1',
+      status: 'disconnected',  // New status!
+      isAlive: false,  // Not fully functional
+      stateFile: null,  // No state file
+      startedAt: null,
+      parentPid: null,
+      managed: false,
+      tmuxPane: tmuxPane,
+      llmStatus: getLLMStatus(proc.workDir),
+      uptime: 'Unknown',
+      askdConnected: askdInfo.connected
+    });
   }
 
   return instances;

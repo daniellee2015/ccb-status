@@ -1,11 +1,11 @@
 /**
- * Restart Zombie Menu
- * Select and restart zombie instances
+ * Recover Disconnected Menu
+ * Select and recover disconnected instances
  */
 
 const { renderPage } = require('cli-menu-kit');
 const { getCCBInstances } = require('../../services/instance-service');
-const { restartZombie } = require('../../services/restart-service');
+const { recoverDisconnected } = require('../../services/restart-service');
 const { tc } = require('../../i18n');
 const path = require('path');
 const {
@@ -15,26 +15,26 @@ const {
   confirmOperation
 } = require('../../services/instance-operations-helper');
 
-async function showRestartZombie() {
-  // Get all instances and filter zombies
+async function showRecoverDisconnected() {
+  // Get all instances and filter disconnected ones
   const instances = await getCCBInstances();
-  const zombies = filterInstancesByStatus(instances, 'zombie');
+  const disconnectedInstances = filterInstancesByStatus(instances, 'disconnected');
 
-  if (zombies.length === 0) {
+  if (disconnectedInstances.length === 0) {
     const result = await renderPage({
       header: {
         type: 'section',
-        text: tc('restartZombie.title')
+        text: tc('recoverDisconnected.title')
       },
       mainArea: {
         type: 'display',
         render: () => {
-          console.log(`  \x1b[32m${tc('restartZombie.noZombies')}\x1b[0m`);
+          console.log(`  \\x1b[32m${tc('recoverDisconnected.noDisconnected')}\\x1b[0m`);
         }
       },
       footer: {
         menu: {
-          options: [`b. ${tc('restartZombie.back')}`],
+          options: [`b. ${tc('recoverDisconnected.back')}`],
           allowLetterKeys: true
         }
       }
@@ -42,38 +42,32 @@ async function showRestartZombie() {
     return 'back';
   }
 
-  // Display zombie instances table
-  await displayInstanceTable(zombies, tc, 'restartZombie');
+  // Display disconnected instances table
+  await displayInstanceTable(disconnectedInstances, tc, 'recoverDisconnected.columns');
 
   // Select instances with cancel option
-  const selectedInstances = await selectInstances(zombies, tc, 'restartZombie');
+  const selectedInstances = await selectInstances(disconnectedInstances, tc, 'recoverDisconnected.checkboxTitle');
   if (!selectedInstances) {
     return 'back';
   }
 
   // Confirm operation with detailed table
-  const confirmed = await confirmOperation(selectedInstances, tc, 'restartZombie');
+  const confirmed = await confirmOperation(selectedInstances, tc, 'recoverDisconnected');
   if (!confirmed) {
     return 'back';
   }
 
-  // Perform restart
-  console.log(`\n  ${tc('restartZombie.restarting')}\n`);
+  // Perform recovery
+  console.log(`\n  ${tc('recoverDisconnected.recovering')}\n`);
 
   const results = [];
   for (const instance of selectedInstances) {
     const projectName = path.basename(instance.workDir);
-    let shortHash;
-    if (instance.stateFile) {
-      const instanceHash = path.basename(path.dirname(instance.stateFile));
-      shortHash = instanceHash.substring(0, 8);
-    } else {
-      shortHash = instance.pid ? `PID:${instance.pid}` : 'Unknown';
-    }
+    const shortHash = instance.pid ? `PID:${instance.pid}` : 'Unknown';
 
-    console.log(`  ${tc('restartZombie.processing', { project: projectName, hash: shortHash })}`);
+    console.log(`  ${tc('recoverDisconnected.processing', { project: projectName, hash: shortHash })}`);
 
-    const result = await restartZombie(instance);
+    const result = await recoverDisconnected(instance);
     results.push({
       project: projectName,
       hash: shortHash,
@@ -94,14 +88,14 @@ async function showRestartZombie() {
   const failCount = results.length - successCount;
 
   if (successCount > 0) {
-    console.log(`  \x1b[32m${tc('restartZombie.successCount', { count: successCount })}\x1b[0m`);
+    console.log(`  \x1b[32m${tc('recoverDisconnected.successCount', { count: successCount })}\x1b[0m`);
   }
   if (failCount > 0) {
-    console.log(`  \x1b[31m${tc('restartZombie.failCount', { count: failCount })}\x1b[0m`);
+    console.log(`  \x1b[31m${tc('recoverDisconnected.failCount', { count: failCount })}\x1b[0m`);
   }
 
   console.log('');
-  console.log(`  ${tc('restartZombie.pressEnter')}`);
+  console.log(`  ${tc('recoverDisconnected.pressEnter')}`);
 
   // Wait for Enter
   await new Promise(resolve => {
@@ -111,4 +105,5 @@ async function showRestartZombie() {
   return 'completed';
 }
 
-module.exports = { showRestartZombie };
+module.exports = { showRecoverDisconnected };
+

@@ -24,7 +24,8 @@ async function showRestartOperations() {
         options: [
           `1. ${tc('instanceManagement.restartZombie')} - \x1b[2m${tc('instanceManagement.restartZombieHint')}\x1b[0m`,
           `2. ${tc('instanceManagement.restartDead')} - \x1b[2m${tc('instanceManagement.restartDeadHint')}\x1b[0m`,
-          `3. ${tc('instanceManagement.restartAll')} - \x1b[2m${tc('instanceManagement.restartAllHint')}\x1b[0m`,
+          `3. ${tc('instanceManagement.recoverDisconnected')} - \x1b[2m${tc('instanceManagement.recoverDisconnectedHint')}\x1b[0m`,
+          `4. ${tc('instanceManagement.restartAll')} - \x1b[2m${tc('instanceManagement.restartAllHint')}\x1b[0m`,
           `b. ${tc('instanceManagement.back')}`
         ],
         allowLetterKeys: true

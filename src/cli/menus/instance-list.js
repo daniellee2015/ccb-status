@@ -41,6 +41,8 @@ async function showInstanceList() {
       statusDisplay = tc('instanceList.status.orphaned');
     } else if (inst.status === 'zombie') {
       statusDisplay = tc('instanceList.status.zombie');
+    } else if (inst.status === 'disconnected') {
+      statusDisplay = tc('instanceList.status.disconnected');
     } else {
       statusDisplay = tc('instanceList.status.dead');
     }
@@ -49,8 +51,15 @@ async function showInstanceList() {
     const displayName = formatInstanceName(inst, historyMap, 'full');
 
     // Get instance hash from stateFile path (parent directory name)
-    const instanceHash = path.basename(path.dirname(inst.stateFile));
-    const shortHash = instanceHash.substring(0, 8);
+    // For disconnected instances without stateFile, use workDir hash
+    let shortHash;
+    if (inst.stateFile) {
+      const instanceHash = path.basename(path.dirname(inst.stateFile));
+      shortHash = instanceHash.substring(0, 8);
+    } else {
+      // For disconnected instances, use PID as identifier
+      shortHash = inst.pid ? `PID:${inst.pid}` : 'Unknown';
+    }
 
     // Determine type based on work_dir using i18n
     // 使用 i18n 根据 work_dir 确定类型

@@ -63,8 +63,13 @@ async function showRestartDead() {
   const results = [];
   for (const instance of selectedInstances) {
     const projectName = path.basename(instance.workDir);
-    const instanceHash = path.basename(path.dirname(instance.stateFile));
-    const shortHash = instanceHash.substring(0, 8);
+    let shortHash;
+    if (instance.stateFile) {
+      const instanceHash = path.basename(path.dirname(instance.stateFile));
+      shortHash = instanceHash.substring(0, 8);
+    } else {
+      shortHash = instance.pid ? `PID:${instance.pid}` : 'Unknown';
+    }
 
     console.log(`  ${tc('restartDead.processing', { project: projectName, hash: shortHash })}`);
 

@@ -19,7 +19,14 @@ async function showHistory() {
   // Create a map of current instances by hash for quick lookup
   const instanceMap = new Map();
   for (const inst of currentInstances) {
-    const hash = path.basename(path.dirname(inst.stateFile));
+    let hash;
+    if (inst.stateFile) {
+      hash = path.basename(path.dirname(inst.stateFile));
+    } else {
+      // For disconnected instances, use workDir hash
+      const crypto = require('crypto');
+      hash = crypto.createHash('md5').update(inst.workDir).digest('hex').substring(0, 16);
+    }
     instanceMap.set(hash, inst);
   }
 

@@ -55,8 +55,13 @@ async function showCleanup(lastDetection = null) {
             }
           }
 
-          const instanceHash = path.basename(path.dirname(inst.stateFile));
-          const shortHash = instanceHash.substring(0, 8);
+          let shortHash;
+          if (inst.stateFile) {
+            const instanceHash = path.basename(path.dirname(inst.stateFile));
+            shortHash = instanceHash.substring(0, 8);
+          } else {
+            shortHash = inst.pid ? `PID:${inst.pid}` : 'Unknown';
+          }
           const type = inst.workDir.includes('.ccb-instances') ? '[Multi]' : '[CCB]';
 
           return {
@@ -105,8 +110,9 @@ async function detectStatus() {
   const orphaned = instances.filter(inst => inst.status === 'orphaned');
   const zombies = instances.filter(inst => inst.status === 'zombie');
   const dead = instances.filter(inst => inst.status === 'dead');
+  const disconnected = instances.filter(inst => inst.status === 'disconnected');
 
-  return { active, orphaned, zombies, dead };
+  return { active, orphaned, zombies, dead, disconnected };
 }
 
 module.exports = { showCleanup, detectStatus };

@@ -10,6 +10,7 @@ const { showInstanceList } = require('../src/cli/menus/instance-list');
 const { showInstanceDetails } = require('../src/cli/menus/instance-details');
 const { showRestartZombie } = require('../src/cli/menus/restart-zombie');
 const { showRestartDead } = require('../src/cli/menus/restart-dead');
+const { showRecoverDisconnected } = require('../src/cli/menus/recover-disconnected');
 const { showHistory } = require('../src/cli/menus/history');
 const { showInstanceManagement } = require('../src/cli/menus/instance-management');
 const { showKillOperations } = require('../src/cli/menus/kill-operations');
@@ -178,7 +179,16 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
-              } else if (restartAction.startsWith('3. Restart All Instances')) {
+              } else if (restartAction.startsWith('3. Recover Disconnected Instances')) {
+                const result = await showRecoverDisconnected();
+                if (result === 'completed') {
+                  startSpinner('Re-detecting status...');
+                  detectionResult = await detectStatus();
+                  stopSpinner('Detection complete');
+                  console.log('');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              } else if (restartAction.startsWith('4. Restart All Instances')) {
                 console.log('\n  🚧 Coming soon: Restart All Instances\n');
                 await new Promise(resolve => setTimeout(resolve, 1000));
               }

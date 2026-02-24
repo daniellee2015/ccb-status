@@ -36,13 +36,14 @@ module.exports = {
     title: 'Active Instances List',
     noInstances: 'No CCB instances found.',
     pressEnter: 'Press Enter to return...',
-    legend: '✓ Active  ⊙ Orphaned  ⚠ Zombie  ✗ Dead  |  [CCB] Standalone  [Multi] Managed',
+    legend: '✓ Active  ⊙ Orphaned  ⚠ Zombie/Disconnected  ✗ Dead  |  [CCB] Standalone  [Multi] Managed',
     status: {
       active: '✓ Active',
       zombie: '⚠ Zombie',
       dead: '✗ Dead',
       orphaned: '⊙ Orphaned',
-      removed: '⊗ Removed'
+      removed: '⊗ Removed',
+      disconnected: '⚠ Disconnected'
     },
     type: {
       ccb: '[CCB]',
@@ -99,6 +100,8 @@ module.exports = {
       active: '✓ Active',
       zombie: '⚠ Zombie',
       dead: '✗ Dead',
+      orphaned: '⊙ Orphaned',
+      disconnected: '⚠ Disconnected',
       removed: '⊗ Removed'
     },
     type: {
@@ -126,10 +129,12 @@ module.exports = {
     active: '✓ Active:  {count}',
     orphaned: '⊙ Orphaned:  {count}',
     zombie: '⚠ Zombie:  {count}',
+    disconnected: '⚠ Disconnected:  {count}',
     dead: '✗ Dead:    {count}',
     allHealthy: '✓ All instances are healthy',
     foundOrphaned: '⊙ Found {count} orphaned process(es) (window closed)',
     foundZombies: '⚠ Found {count} zombie instance(s)',
+    foundDisconnected: '⚠ Found {count} disconnected instance(s) (state files missing)',
     foundDead: '✗ Found {count} dead instance(s)',
 
     // Menu scenarios
@@ -163,6 +168,8 @@ module.exports = {
     restartZombieHint: 'Kill stuck processes and restart',
     restartDead: 'Restart Dead Instances',
     restartDeadHint: 'Restart exited processes',
+    recoverDisconnected: 'Recover Disconnected Instances',
+    recoverDisconnectedHint: 'Recover instances with missing state files',
     restartAll: 'Restart All Instances',
     restartAllHint: 'Restart all instances',
 
@@ -290,6 +297,33 @@ module.exports = {
       type: 'Type',
       tmux: 'Tmux',
       workDir: 'Work Directory'
+    }
+  },
+
+  // Recover Disconnected
+  recoverDisconnected: {
+    title: 'Recover Disconnected Instances',
+    noDisconnected: '✓ No disconnected instances found',
+    selectPrompt: 'Select instances to recover:',
+    checkboxTitle: 'Select Disconnected Instances (Space to toggle, Enter to confirm)',
+    confirmationWarning: 'Warning: About to recover the following disconnected instances (kill CCB daemon then restart)',
+    confirmPrompt: 'Confirm recovering {count} disconnected instance(s)?',
+    recovering: 'Recovering instances...',
+    processing: 'Processing {project} [{hash}]...',
+    successCount: '✓ Successfully recovered {count} instance(s)',
+    failCount: '✗ Failed to recover {count} instance(s)',
+    pressEnter: 'Press Enter to continue...',
+    select: 'Select',
+    back: 'Back',
+    columns: {
+      project: 'Project',
+      parent: 'Parent',
+      hash: 'Hash',
+      type: 'Type',
+      pid: 'PID',
+      port: 'Port',
+      status: 'Status',
+      tmux: 'Tmux'
     }
   },
 

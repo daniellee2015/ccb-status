@@ -34,8 +34,13 @@ function displayInstanceTable(instances, tc, columnsKey) {
 
   const tableData = instances.map((inst, idx) => {
     const displayName = formatInstanceName(inst, historyMap, 'with-parent');
-    const instanceHash = path.basename(path.dirname(inst.stateFile));
-    const shortHash = instanceHash.substring(0, 8);
+    let shortHash;
+    if (inst.stateFile) {
+      const instanceHash = path.basename(path.dirname(inst.stateFile));
+      shortHash = instanceHash.substring(0, 8);
+    } else {
+      shortHash = inst.pid ? `PID:${inst.pid}` : 'Unknown';
+    }
     const type = inst.managed ? '[Multi]' : '[CCB]';
 
     return {
@@ -83,8 +88,13 @@ async function selectInstances(instances, tc, promptKey) {
 
   const checkboxOptions = instances.map((inst, idx) => {
     const displayName = formatInstanceName(inst, historyMap, 'full');
-    const instanceHash = path.basename(path.dirname(inst.stateFile));
-    const shortHash = instanceHash.substring(0, 8);
+    let shortHash;
+    if (inst.stateFile) {
+      const instanceHash = path.basename(path.dirname(inst.stateFile));
+      shortHash = instanceHash.substring(0, 8);
+    } else {
+      shortHash = inst.pid ? `PID:${inst.pid}` : 'Unknown';
+    }
     return `${idx + 1}. ${displayName} (${shortHash}) - PID ${inst.pid || 'N/A'}`;
   });
 

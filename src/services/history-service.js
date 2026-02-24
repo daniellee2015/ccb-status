@@ -59,7 +59,15 @@ function updateHistory(instances) {
   const now = new Date().toISOString();
 
   for (const inst of instances) {
-    const key = path.basename(path.dirname(inst.stateFile)); // instance hash
+    // For disconnected instances without stateFile, use workDir hash
+    let key;
+    if (inst.stateFile) {
+      key = path.basename(path.dirname(inst.stateFile)); // instance hash
+    } else {
+      // Generate a hash from workDir for disconnected instances
+      const crypto = require('crypto');
+      key = crypto.createHash('md5').update(inst.workDir).digest('hex').substring(0, 16);
+    }
 
     if (!history[key]) {
       // New instance
