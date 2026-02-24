@@ -29,7 +29,7 @@ async function showRecoverDisconnected() {
       mainArea: {
         type: 'display',
         render: () => {
-          console.log(`  \\x1b[32m${tc('recoverDisconnected.noDisconnected')}\\x1b[0m`);
+          console.log(`  \x1b[32m${tc('recoverDisconnected.noDisconnected')}\x1b[0m`);
         }
       },
       footer: {
