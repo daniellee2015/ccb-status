@@ -328,11 +328,108 @@ async function recoverDisconnected(instance) {
   }
 }
 
+/**
+ * Recover an orphaned instance
+ * Orphaned = CCB process running but tmux session detached
+ * Steps: Find or create tmux window -> attach to session
+ * @param {object} instance - Instance object
+ * @returns {object} - Result object {success, message}
+ */
+async function recoverOrphaned(instance) {
+  try {
+    const projectName = path.basename(instance.workDir);
+
+    // Step 1: Find detached tmux sessions with CCB panes for this work directory
+    let detachedPanes = [];
+    try {
+      const result = execSync('tmux list-panes -a -F "#{session_attached}\\\\\\\\t#{pane_id}\\\\\\\\t#{pane_current_path}\\\\\\\\t#{pane_title}\\\\\\\\t#{session_name}"', {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+
+      for (const line of result.split('\n')) {
+        if (!line) continue;
+        const parts = line.split('\\t');
+        if (parts.length >= 5) {
+          const sessionAttached = parts[0];
+          const paneId = parts[1];
+          const panePath = parts[2];
+          const paneTitle = parts[3];
+          const sessionName = parts[4];
+
+          // Check if this is a detached CCB pane for our work directory
+          const isCCBPane = paneTitle.includes('Ready') || paneTitle.includes('CCB-') || paneTitle.includes('OpenCode') || paneTitle.includes('Gemini');
+          if (sessionAttached === '0' && isCCBPane && panePath === instance.workDir) {
+            detachedPanes.push({ paneId, sessionName, paneTitle });
+          }
+        }
+      }
+    } catch (e) {
+      console.log(`  Warning: Could not list tmux panes: ${e.message}`);
+    }
+
+    // Step 2: If found detached panes, attach to the session
+    if (detachedPanes.length > 0) {
+      const pane = detachedPanes[0]; // Use the first one
+      console.log(`  Found detached CCB pane ${pane.paneId} in session ${pane.sessionName}`);
+      console.log(`  To reconnect, run: tmux attach -t ${pane.sessionName}`);
+
+      return {
+        success: true,
+        message: `Found detached session ${pane.sessionName}. Run: tmux attach -t ${pane.sessionName}`
+      };
+    }
+
+    // Step 3: No detached panes found, create new window
+    console.log(`  No detached CCB panes found, creating new window`);
+    const windowName = `CCB-${projectName}`;
+
+    try {
+      execSync(`tmux new-window -n \"${windowName}\"`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+      console.log(`  Created new tmux window: ${windowName}`);
+    } catch (e) {
+      return {
+        success: false,
+        message: `Failed to create tmux window: ${e.message}`
+      };
+    }
+
+    // Step 4: Change to work directory
+    console.log(`  Changing to work directory: ${instance.workDir}`);
+    execSync(`tmux send-keys \"cd ${instance.workDir}\" Enter`, {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Step 5: Attach to the running CCB process
+    // Since the process is already running, we just need to provide a shell
+    // The user can manually check the running CCB with `ps` or use ccb commands
+    console.log(`  CCB process (PID ${instance.pid}) is already running`);
+    console.log(`  You can interact with it using ccb commands in this window`);
+
+    return {
+      success: true,
+      message: `Created new window. CCB process (PID ${instance.pid}) is already running.`
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message
+    };
+  }
+}
+
 module.exports = {
   getActiveLLMs,
   getRestartCommand,
   tmuxPaneExists,
   restartZombie,
   restartDead,
-  recoverDisconnected
+  recoverDisconnected,
+  recoverOrphaned
 };
