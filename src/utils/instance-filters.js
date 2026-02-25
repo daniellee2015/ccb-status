@@ -9,10 +9,13 @@
 /**
  * Filter instances by status
  * @param {Array} instances - Array of instance objects from getCCBInstances()
- * @param {string} status - Status to filter by: 'active', 'orphaned', 'zombie', 'disconnected', 'dead'
+ * @param {string|Array<string>} status - Status to filter by (single or array of statuses)
  * @returns {Array} Filtered instances
  */
 function filterByStatus(instances, status) {
+  if (Array.isArray(status)) {
+    return instances.filter(inst => status.includes(inst.status));
+  }
   return instances.filter(inst => inst.status === status);
 }
 

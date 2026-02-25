@@ -4,8 +4,7 @@
  */
 
 const { renderPage, renderTable } = require('cli-menu-kit');
-const { getInstances } = require('../../utils/instance-query');
-const { groupByStatus } = require('../../utils/instance-filters');
+const { getInstances, getAllGrouped } = require('../../utils/instance-query');
 const { tc } = require('../../i18n');
 const path = require('path');
 
@@ -28,25 +27,25 @@ async function showCleanup(lastDetection = null) {
           return;
         }
 
-        const { active, zombies, dead } = lastDetection;
+        const { active, zombie, dead } = lastDetection;
 
         // Show detection summary
         console.log(`  ${tc('cleanup.statusDetection')}`);
         console.log(`    \x1b[32m${tc('cleanup.active', { count: active.length })}\x1b[0m`);
-        console.log(`    \x1b[33m${tc('cleanup.zombie', { count: zombies.length })}\x1b[0m`);
+        console.log(`    \x1b[33m${tc('cleanup.zombie', { count: zombie.length })}\x1b[0m`);
         console.log(`    \x1b[90m${tc('cleanup.dead', { count: dead.length })}\x1b[0m`);
         console.log('');
 
-        if (zombies.length === 0) {
+        if (zombie.length === 0) {
           console.log(`  \x1b[32m${tc('cleanup.noZombies')}\x1b[0m`);
           return;
         }
 
-        console.log(`  \x1b[33m${tc('cleanup.foundZombies', { count: zombies.length })}\x1b[0m`);
+        console.log(`  \x1b[33m${tc('cleanup.foundZombies', { count: zombie.length })}\x1b[0m`);
         console.log('');
 
         // Prepare table data
-        const tableData = zombies.map((inst, idx) => {
+        const tableData = zombie.map((inst, idx) => {
           let projectName = path.basename(inst.workDir);
           if (inst.workDir.includes('.ccb-instances')) {
             const parts = inst.workDir.split(path.sep);
@@ -105,8 +104,7 @@ async function showCleanup(lastDetection = null) {
 }
 
 async function detectStatus() {
-  const instances = await getInstances();
-  return groupByStatus(instances);
+  return await getAllGrouped();
 }
 
 module.exports = { showCleanup, detectStatus };
