@@ -106,11 +106,47 @@ async function getTmuxSessions(onlyAttached = true) {
         paneCount = parseInt(windowCount) || 1;
       }
 
+      // Get detailed window information for this session
+      const windows = [];
+      try {
+        const windowsResult = execSync(`tmux list-windows -t ${name} -F "#{window_index}\\t#{window_name}\\t#{window_panes}"`, {
+          encoding: 'utf8',
+          timeout: 2000
+        });
+
+        for (const windowLine of windowsResult.split('\n')) {
+          if (!windowLine) continue;
+          const [index, windowName, panes] = windowLine.split('\t');
+
+          // Check if this window contains a CCB instance
+          const ccbInfo = sessionToCCB[name] || null;
+          const isCCB = ccbInfo !== null && parseInt(windowCount) === 1; // CCB sessions have only 1 window
+
+          windows.push({
+            index: parseInt(index),
+            name: windowName,
+            panes: parseInt(panes),
+            ccbInfo: isCCB ? ccbInfo : null,
+            isCCB: isCCB
+          });
+        }
+      } catch (e) {
+        // If we can't get window details, create a minimal entry
+        windows.push({
+          index: 0,
+          name: 'unknown',
+          panes: paneCount,
+          ccbInfo: sessionToCCB[name] || null,
+          isCCB: sessionToCCB[name] !== null
+        });
+      }
+
       sessions[name] = {
         attached: attached === '1',
         windowCount: parseInt(windowCount) || 1,
         paneCount: paneCount,
-        ccbInfo: sessionToCCB[name] || null
+        ccbInfo: sessionToCCB[name] || null,
+        windows: windows
       };
     }
 
