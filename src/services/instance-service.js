@@ -1,48 +1,23 @@
 /**
  * Instance Service
  * Handles CCB instance detection and management
+ *
+ * CRITICAL: Uses atomic check functions from instance-checks.js
+ * DO NOT duplicate check logic here
  */
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const net = require('net');
-const { getRunningCCBProcesses, isPidAlive: checkPidAlive } = require('../utils/process-detector');
-
-/**
- * Check if PID is alive
- */
-function isPidAlive(pid) {
-  return checkPidAlive(pid);
-}
-
-/**
- * Check if port is listening (lightweight check)
- */
-function isPortListening(port, host = '127.0.0.1', timeout = 50) {
-  return new Promise((resolve) => {
-    const socket = new net.Socket();
-
-    socket.setTimeout(timeout);
-
-    socket.on('connect', () => {
-      socket.destroy();
-      resolve(true);
-    });
-
-    socket.on('timeout', () => {
-      socket.destroy();
-      resolve(false);
-    });
-
-    socket.on('error', () => {
-      resolve(false);
-    });
-
-    socket.connect(port, host);
-  });
-}
+const { getRunningCCBProcesses } = require('../utils/process-detector');
+const {
+  isAskdAlive,
+  isCcbAlive,
+  isPortListening,
+  hasDedicatedTmuxSession,
+  findTmuxPaneByWorkDir
+} = require('../utils/instance-checks');
 
 /**
  * Get tmux pane ID for work directory
@@ -291,8 +266,9 @@ async function getCCBInstances() {
         // Check if CCB process is actually running (not just askd daemon)
         const ccbProcess = ccbProcesses.find(p => p.workDir === workDir);
 
-        const askdAlive = isPidAlive(pid);
-        const ccbAlive = ccbProcess !== null;
+        // Use atomic check functions
+        const askdAlive = isAskdAlive(pid);
+        const ccbAlive = isCcbAlive(ccbProcess ? ccbProcess.pid : null);
 
         if (askdAlive) {
           // askd daemon PID exists, check if port is listening
@@ -302,10 +278,10 @@ async function getCCBInstances() {
             if (ccbAlive) {
               // Both askd and CCB are running
               if (tmuxPane) {
-                status = 'active';  // Has tmux window, truly active
+                status = 'active';  // Has dedicated tmux session
                 isAlive = true;
               } else {
-                status = 'orphaned';  // No tmux window, orphaned process
+                status = 'orphaned';  // No dedicated tmux session
                 isAlive = false;
               }
             } else {
@@ -406,8 +382,6 @@ async function getCCBInstances() {
 }
 
 module.exports = {
-  isPidAlive,
-  isPortListening,
   getTmuxPaneInfo,
   getLLMStatus,
   getUptime,
