@@ -4,7 +4,8 @@
   "description": "Status monitor for Claude Code Bridge - Monitor all CCB instances and daemon health",
   "main": "lib/index.js",
   "bin": {
-    "ccb-status": "./bin/ccb-status.js"
+    "ccb-status": "./bin/ccb-status.js",
+    "ccb-cleanup-safe": "./bin/ccb-cleanup-safe.js"
   },
   "scripts": {
     "build": "echo 'No build needed for now'",
