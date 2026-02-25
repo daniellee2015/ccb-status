@@ -43,21 +43,63 @@ Instance (实例)
 
 **Principle**: Work Directory is the Single Source of Truth
 
-1. **Identity**: Instance = Work Directory (not PID, not hash)
-2. **State**: Determined by component availability
-3. **Matching**: All components matched by work_dir
+**CRITICAL: Unified Detection Logic**
+- ALL menus and operations MUST use the same detection function
+- NO duplicate detection logic in different files
+- Detection logic is centralized in `instance-service.js`
+- All other modules import and use `getCCBInstances()`
+
+**Detection Steps**:
+1. **Scan state files** (`~/.cache/ccb/projects/*/askd.json`)
+   - Extract: work_dir, askd PID, ccb PID (parent_pid), port
+2. **Scan running processes**
+   - Find all CCB processes: `ps aux | awk '$11 ~ /Python/ && $12 ~ /\.local\/bin\/ccb$/'`
+   - Find all askd processes: `ps aux | awk '$11 ~ /Python/ && $12 ~ /\/askd$/'`
+   - Get work_dir for each PID: `lsof -a -d cwd -p {pid}`
+3. **Scan tmux sessions**
+   - Get session info: `tmux list-sessions -F "#{session_name}\t#{session_attached}\t#{session_windows}"`
+   - Get pane info: `tmux list-panes -a -F "#{session_name}\t#{pane_id}\t#{pane_current_path}\t#{pane_title}"`
+   - Filter: session_attached = 1 AND session_windows = 1 AND pane has CCB title
+4. **Match by work_dir**
+   - For each work_dir, find matching askd process, ccb process, and tmux pane
+5. **Determine state** using Component Availability Matrix
+
+**State Determination Algorithm**:
+```javascript
+if (askdAlive && ccbAlive && portListening && tmuxPane && sessionWindows === 1) {
+  status = 'active';
+} else if (askdAlive && ccbAlive && portListening && (!tmuxPane || sessionWindows > 1)) {
+  status = 'orphaned';
+} else if (askdAlive && !ccbAlive && portListening) {
+  status = 'zombie';
+} else if (!askdAlive && ccbAlive) {
+  status = 'disconnected';
+} else {
+  status = 'dead';
+}
+```
 
 ### Component Availability Matrix
 
-| State | Daemon | Process | Terminal | Port |
-|-------|--------|---------|----------|------|
-| Active | ✓ | ✓ | ✓ | ✓ |
-| Orphaned | ✓ | ✓ | ✗ | ✓ |
-| Zombie | ✓ | ✗ | ? | ✓ |
-| Disconnected | ✗ | ✓ | ? | ✗ |
-| Dead | ✗ | ✗ | ? | ✗ |
+| State | Daemon (askd) | Process (ccb) | Tmux Session | Port | Session Windows |
+|-------|---------------|---------------|--------------|------|-----------------|
+| Active | ✓ alive | ✓ alive | ✓ attached + 1 window | ✓ listening | = 1 |
+| Orphaned | ✓ alive | ✓ alive | ✗ no session OR multi-window | ✓ listening | > 1 or none |
+| Zombie | ✓ alive | ✗ dead | ? | ✓ listening | ? |
+| Disconnected | ✗ dead | ✓ alive | ? | ✗ not listening | ? |
+| Dead | ✗ dead | ✗ dead | ? | ✗ not listening | ? |
 
-Legend: ✓ = must exist, ✗ = must not exist, ? = don't care
+Legend: ✓ = must satisfy condition, ✗ = must not satisfy, ? = don't care
+
+**CRITICAL: Active State Requirements (ALL must be true)**
+1. askd daemon process is alive (PID exists)
+2. ccb main process is alive (PID exists)
+3. Port is listening (TCP connection succeeds)
+4. Tmux session exists AND is attached (session_attached = 1)
+5. Tmux session has ONLY 1 window (session_windows = 1)
+6. Instance work_dir matches tmux pane current_path
+
+**Orphaned State**: Process alive but no dedicated tmux session (multi-window session or detached)
 
 ## Core Concepts
 

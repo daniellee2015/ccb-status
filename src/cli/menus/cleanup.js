@@ -5,6 +5,7 @@
 
 const { renderPage, renderTable } = require('cli-menu-kit');
 const { getCCBInstances } = require('../../services/instance-service');
+const { groupByStatus } = require('../../utils/instance-filters');
 const { tc } = require('../../i18n');
 const path = require('path');
 
@@ -105,14 +106,7 @@ async function showCleanup(lastDetection = null) {
 
 async function detectStatus() {
   const instances = await getCCBInstances();
-
-  const active = instances.filter(inst => inst.status === 'active');
-  const orphaned = instances.filter(inst => inst.status === 'orphaned');
-  const zombies = instances.filter(inst => inst.status === 'zombie');
-  const dead = instances.filter(inst => inst.status === 'dead');
-  const disconnected = instances.filter(inst => inst.status === 'disconnected');
-
-  return { active, orphaned, zombies, dead, disconnected };
+  return groupByStatus(instances);
 }
 
 module.exports = { showCleanup, detectStatus };
