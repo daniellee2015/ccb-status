@@ -8,18 +8,13 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 const net = require('net');
+const { getRunningCCBProcesses, isPidAlive: checkPidAlive } = require('../utils/process-detector');
 
 /**
  * Check if PID is alive
  */
 function isPidAlive(pid) {
-  if (!pid || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (e) {
-    return false;
-  }
+  return checkPidAlive(pid);
 }
 
 /**
@@ -177,55 +172,6 @@ function getUptime(startedAt) {
 /**
  * Get running CCB processes from system
  */
-function getRunningCCBProcesses() {
-  try {
-    // Step 1: Use ps + grep to find CCB process PIDs (pgrep misses some processes)
-    const result = execSync('ps aux | grep -E "/ccb$|/ccb " | grep -v grep', {
-      encoding: 'utf8',
-      timeout: 2000
-    });
-
-    const ccbPids = [];
-    for (const line of result.split('\n')) {
-      if (!line) continue;
-      const parts = line.trim().split(/\s+/);
-      if (parts.length < 11) continue;
-      const pid = parseInt(parts[1]);
-      if (pid) ccbPids.push(pid);
-    }
-
-    if (ccbPids.length === 0) return [];
-
-    // Step 2: Get work directories for each CCB PID
-    const processes = [];
-    for (const pid of ccbPids) {
-      try {
-        const lsofResult = execSync(`lsof -a -d cwd -p ${pid} 2>/dev/null`, {
-          encoding: 'utf8',
-          timeout: 2000
-        });
-
-        // Parse lsof output to get work directory
-        for (const line of lsofResult.split('\n')) {
-          if (!line || !line.includes('cwd')) continue;
-          const parts = line.trim().split(/\s+/);
-          if (parts.length < 9) continue;
-          const workDir = parts.slice(8).join(' '); // Path might contain spaces
-          if (workDir) {
-            processes.push({ pid, workDir });
-            break; // Found the work directory for this PID
-          }
-        }
-      } catch (e) {
-        // Process might have exited
-      }
-    }
-    return processes;
-  } catch (e) {
-    return [];
-  }
-}
-
 /**
  * Check if askd daemon is accessible for a work directory
  */
