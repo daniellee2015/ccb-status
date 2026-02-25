@@ -235,7 +235,7 @@ async function getCCBInstances() {
         const paneTitle = parts[3];
         // Only include panes from attached sessions with CCB-related titles
         // CCB panes have titles like "◇  Ready (instance-name)" or "CCB-Codex"
-        const isCCBPane = paneTitle.includes('Ready') || paneTitle.includes('CCB-') || paneTitle.includes('OpenCode') || paneTitle.includes('Gemini');
+        const isCCBPane = paneTitle.includes('Ready') || paneTitle.includes('CCB-') || paneTitle.includes('OpenCode') || paneTitle.includes('Gemini') || paneTitle.includes('Codex');
         if (isCCBPane && sessionAttached === '1') {
           tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle });
         }

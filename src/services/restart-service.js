@@ -531,7 +531,7 @@ async function recoverOrphaned(instance) {
           const sessionName = parts[4];
 
           // Check if this is a detached CCB pane for our work directory
-          const isCCBPane = paneTitle.includes('Ready') || paneTitle.includes('CCB-') || paneTitle.includes('OpenCode') || paneTitle.includes('Gemini');
+          const isCCBPane = paneTitle.includes('Ready') || paneTitle.includes('CCB-') || paneTitle.includes('OpenCode') || paneTitle.includes('Gemini') || paneTitle.includes('Codex');
           if (sessionAttached === '0' && isCCBPane && panePath === instance.workDir) {
             detachedPanes.push({ paneId, sessionName, paneTitle });
           }
