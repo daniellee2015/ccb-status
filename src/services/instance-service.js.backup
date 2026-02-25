@@ -218,28 +218,10 @@ async function getCCBInstances() {
   const ccbProcesses = getRunningCCBProcesses();
 
   // Get all tmux panes once (for performance)
-  // Only consider panes where instance owns the session (session has only 1 window)
+  // Only consider panes in attached sessions
   let tmuxPanesMap = new Map();
   try {
-    // Get session info: session_name, windows_count
-    const sessionResult = execSync('tmux list-sessions -F "#{session_name}\\\\t#{session_attached}\\\\t#{session_windows}"', {
-      encoding: 'utf8',
-      timeout: 2000
-    });
-    const sessionInfo = new Map();
-    for (const line of sessionResult.split('\n')) {
-      if (!line) continue;
-      const parts = line.split('\\t');
-      if (parts.length >= 3) {
-        const sessionName = parts[0];
-        const attached = parts[1];
-        const windowsCount = parseInt(parts[2]);
-        sessionInfo.set(sessionName, { attached: attached === '1', windowsCount });
-      }
-    }
-
-    // Get pane info
-    const tmuxResult = execSync('tmux list-panes -a -F "#{session_name}\\\\t#{pane_id}\\\\t#{pane_current_path}\\\\t#{pane_title}"', {
+    const tmuxResult = execSync('tmux list-panes -a -F "#{session_attached}\\\\t#{pane_id}\\\\t#{pane_current_path}\\\\t#{pane_title}"', {
       encoding: 'utf8',
       timeout: 2000
     });
@@ -247,18 +229,15 @@ async function getCCBInstances() {
       if (!line) continue;
       const parts = line.split('\\t');
       if (parts.length >= 4) {
-        const sessionName = parts[0];
+        const sessionAttached = parts[0];
         const paneId = parts[1];
         const panePath = parts[2];
         const paneTitle = parts[3];
-
         // Only include panes from attached sessions with CCB-related titles
+        // CCB panes have titles like "◇  Ready (instance-name)" or "CCB-Codex"
         const isCCBPane = paneTitle.includes('Ready') || paneTitle.includes('CCB-') || paneTitle.includes('OpenCode') || paneTitle.includes('Gemini') || paneTitle.includes('Codex');
-        const session = sessionInfo.get(sessionName);
-
-        // Active criteria: session is attached AND has only 1 window (instance owns the session)
-        if (isCCBPane && session && session.attached && session.windowsCount === 1) {
-          tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle, session: sessionName });
+        if (isCCBPane && sessionAttached === '1') {
+          tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle });
         }
       }
     }
