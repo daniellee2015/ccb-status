@@ -9,7 +9,6 @@ const { formatInstanceName } = require('./display-formatter');
 const { displayConfirmationTable } = require('./confirmation-helper');
 const { filterByStatus } = require('../utils/instance-filters');
 const path = require('path');
-}
 
 /**
  * Display instance selection table
