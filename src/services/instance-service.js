@@ -196,34 +196,30 @@ function getRunningCCBProcesses() {
 
     if (ccbPids.length === 0) return [];
 
-    // Step 2: Get all Python process working directories in one lsof call
-    const lsofResult = execSync('lsof -a -d cwd -c Python 2>/dev/null', {
-      encoding: 'utf8',
-      timeout: 2000
-    });
-
-    // Build a map of PID -> workDir
-    const pidWorkDirMap = new Map();
-    for (const line of lsofResult.split('\n')) {
-      if (!line || !line.includes('cwd')) continue;
-      const parts = line.trim().split(/\s+/);
-      if (parts.length < 9) continue;
-      const pid = parseInt(parts[1]);
-      const workDir = parts.slice(8).join(' '); // Path might contain spaces
-      if (pid && workDir) {
-        pidWorkDirMap.set(pid, workDir);
-      }
-    }
-
-    // Step 3: Match CCB PIDs with their work directories
+    // Step 2: Get work directories for each CCB PID
     const processes = [];
     for (const pid of ccbPids) {
-      const workDir = pidWorkDirMap.get(pid);
-      if (workDir) {
-        processes.push({ pid, workDir });
+      try {
+        const lsofResult = execSync(`lsof -a -d cwd -p ${pid} 2>/dev/null`, {
+          encoding: 'utf8',
+          timeout: 2000
+        });
+
+        // Parse lsof output to get work directory
+        for (const line of lsofResult.split('\n')) {
+          if (!line || !line.includes('cwd')) continue;
+          const parts = line.trim().split(/\s+/);
+          if (parts.length < 9) continue;
+          const workDir = parts.slice(8).join(' '); // Path might contain spaces
+          if (workDir) {
+            processes.push({ pid, workDir });
+            break; // Found the work directory for this PID
+          }
+        }
+      } catch (e) {
+        // Process might have exited
       }
     }
-
     return processes;
   } catch (e) {
     return [];
@@ -369,6 +365,8 @@ async function getCCBInstances() {
           parentPid: data.parent_pid,
           managed: data.managed,
           tmuxPane: tmuxPane,
+          ccbPid: ccbProcess ? ccbProcess.pid : null,
+          askdPid: pid,
           llmStatus: getLLMStatus(workDir),
           uptime: getUptime(data.started_at)
         });
