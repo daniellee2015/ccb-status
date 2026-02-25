@@ -5,7 +5,73 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execSync } = require('child_process');
+
+/**
+ * Verify that restart/recover operation succeeded
+ * @param {string} workDir - Work directory
+ * @param {number} maxWaitMs - Maximum wait time in milliseconds
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function verifyRestartSuccess(workDir, maxWaitMs = 10000) {
+  const startTime = Date.now();
+  const cacheDir = path.join(os.homedir(), '.cache', 'ccb', 'projects');
+
+  while (Date.now() - startTime < maxWaitMs) {
+    try {
+      // Check if state file exists
+      const projectDirs = fs.readdirSync(cacheDir);
+      for (const projectDir of projectDirs) {
+        const stateFile = path.join(cacheDir, projectDir, 'askd.json');
+        if (fs.existsSync(stateFile)) {
+          const data = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+          if (data.work_dir === workDir) {
+            // State file exists, check if port is listening
+            const port = data.port || 0;
+            const host = data.host || '127.0.0.1';
+
+            // Simple port check
+            const net = require('net');
+            const portListening = await new Promise((resolve) => {
+              const socket = new net.Socket();
+              socket.setTimeout(100);
+              socket.on('connect', () => {
+                socket.destroy();
+                resolve(true);
+              });
+              socket.on('timeout', () => {
+                socket.destroy();
+                resolve(false);
+              });
+              socket.on('error', () => {
+                resolve(false);
+              });
+              socket.connect(port, host);
+            });
+
+            if (portListening) {
+              return {
+                success: true,
+                message: `Verified: state file exists and port ${port} is listening`
+              };
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Continue waiting
+    }
+
+    // Wait 500ms before next check
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  return {
+    success: false,
+    message: `Verification timeout: no active state file found after ${maxWaitMs}ms`
+  };
+}
 
 /**
  * Get active LLMs by checking session files
@@ -151,9 +217,20 @@ async function restartZombie(instance) {
       });
       console.log(`  Created new window and restarted with command: ${command}`);
 
+      // Verify restart success
+      console.log(`  Verifying restart...`);
+      const verification = await verifyRestartSuccess(instance.workDir, 10000);
+      if (!verification.success) {
+        return {
+          success: false,
+          message: `Restart command sent but verification failed: ${verification.message}`
+        };
+      }
+      console.log(`  ${verification.message}`);
+
       return {
         success: true,
-        message: 'Created new window and restarted'
+        message: 'Created new window and restarted successfully'
       };
     }
 
@@ -177,9 +254,20 @@ async function restartZombie(instance) {
     });
     console.log(`  Restarted with command: ${command}`);
 
+    // Step 6: Verify restart success
+    console.log(`  Verifying restart...`);
+    const verification = await verifyRestartSuccess(instance.workDir, 10000);
+    if (!verification.success) {
+      return {
+        success: false,
+        message: `Restart command sent but verification failed: ${verification.message}`
+      };
+    }
+    console.log(`  ${verification.message}`);
+
     return {
       success: true,
-      message: 'Restarted successfully'
+      message: 'Restarted and verified successfully'
     };
   } catch (error) {
     return {
@@ -220,9 +308,20 @@ async function restartDead(instance) {
         });
         console.log(`  Restarted in existing CCB pane ${paneId}`);
 
+        // Verify restart success
+        console.log(`  Verifying restart...`);
+        const verification = await verifyRestartSuccess(instance.workDir, 10000);
+        if (!verification.success) {
+          return {
+            success: false,
+            message: `Restart command sent but verification failed: ${verification.message}`
+          };
+        }
+        console.log(`  ${verification.message}`);
+
         return {
           success: true,
-          message: 'Restarted in existing tmux pane'
+          message: 'Restarted in existing tmux pane successfully'
         };
       }
     }
@@ -256,9 +355,20 @@ async function restartDead(instance) {
     });
     console.log(`  Created new window and started CCB`);
 
+    // Verify restart success
+    console.log(`  Verifying restart...`);
+    const verification = await verifyRestartSuccess(instance.workDir, 10000);
+    if (!verification.success) {
+      return {
+        success: false,
+        message: `Restart command sent but verification failed: ${verification.message}`
+      };
+    }
+    console.log(`  ${verification.message}`);
+
     return {
       success: true,
-      message: 'Created new tmux window and restarted'
+      message: 'Created new tmux window and restarted successfully'
     };
   } catch (error) {
     return {
@@ -368,13 +478,20 @@ async function recoverDisconnected(instance) {
       });
     }
 
-    // Step 5: Wait for CCB to start
-    console.log(`  Waiting for CCB to start...`);
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Step 5: Verify recovery success
+    console.log(`  Verifying recovery...`);
+    const verification = await verifyRestartSuccess(instance.workDir, 15000);
+    if (!verification.success) {
+      return {
+        success: false,
+        message: `Recovery command sent but verification failed: ${verification.message}`
+      };
+    }
+    console.log(`  ${verification.message}`);
 
     return {
       success: true,
-      message: 'Recovered successfully'
+      message: 'Recovered and verified successfully'
     };
   } catch (error) {
     return {
