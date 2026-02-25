@@ -301,7 +301,7 @@ async function getCCBInstances() {
 
         instances.push({
           workDir: workDir,
-          pid: pid,
+          pid: ccbProcess ? ccbProcess.pid : pid,  // Prefer CCB process PID over askd PID
           port: port,
           host: host,
           status: status,

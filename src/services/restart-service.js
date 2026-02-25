@@ -168,49 +168,60 @@ async function restartDead(instance) {
     const projectName = path.basename(instance.workDir);
     const command = getRestartCommand(instance);
 
-    // Check if tmux pane exists
+    // Check if tmux pane exists AND is a CCB pane (not a regular shell)
     if (instance.tmuxPane && tmuxPaneExists(instance.tmuxPane.id)) {
-      // Pane exists, just send command
       const paneId = instance.tmuxPane.id;
-      execSync(`tmux send-keys -t ${paneId} "${command}" Enter`, {
-        encoding: 'utf8',
-        timeout: 2000
-      });
-      console.log(`  Restarted in existing pane ${paneId}`);
+      const paneTitle = instance.tmuxPane.title || '';
 
-      return {
-        success: true,
-        message: 'Restarted in existing tmux pane'
-      };
-    } else {
-      // Pane doesn't exist, create new window
-      const windowName = `CCB-${projectName}`;
-      execSync(`tmux new-window -n "${windowName}"`, {
-        encoding: 'utf8',
-        timeout: 2000
-      });
-      
-      // Change to work directory
-      execSync(`tmux send-keys "cd ${instance.workDir}" Enter`, {
-        encoding: 'utf8',
-        timeout: 2000
-      });
+      // Only reuse pane if it's clearly a CCB pane (has CCB-related title)
+      const isCCBPane = paneTitle.includes('Ready') ||
+                        paneTitle.includes('CCB-') ||
+                        paneTitle.includes('OpenCode') ||
+                        paneTitle.includes('Gemini') ||
+                        paneTitle.includes('Codex');
 
-      // Wait a bit
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (isCCBPane) {
+        // This is a CCB pane, safe to reuse
+        execSync(`tmux send-keys -t ${paneId} "${command}" Enter`, {
+          encoding: 'utf8',
+          timeout: 2000
+        });
+        console.log(`  Restarted in existing CCB pane ${paneId}`);
 
-      // Start CCB
-      execSync(`tmux send-keys "${command}" Enter`, {
-        encoding: 'utf8',
-        timeout: 2000
-      });
-      console.log(`  Created new window and started CCB`);
-
-      return {
-        success: true,
-        message: 'Created new tmux window and restarted'
-      };
+        return {
+          success: true,
+          message: 'Restarted in existing tmux pane'
+        };
+      }
     }
+
+    // Pane doesn't exist or is not a CCB pane, create new window
+    const windowName = `CCB-${projectName}`;
+    execSync(`tmux new-window -n "${windowName}"`, {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+
+    // Change to work directory
+    execSync(`tmux send-keys "cd ${instance.workDir}" Enter`, {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+
+    // Wait a bit
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Start CCB
+    execSync(`tmux send-keys "${command}" Enter`, {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+    console.log(`  Created new window and started CCB`);
+
+    return {
+      success: true,
+      message: 'Created new tmux window and restarted'
+    };
   } catch (error) {
     return {
       success: false,

@@ -58,12 +58,12 @@ function displayInstanceTable(instances, tc, columnsKey) {
   renderTable({
     columns: [
       { header: '#', key: 'no', align: 'center', width: 4 },
-      { header: tc(`${columnsKey}.project`), key: 'project', align: 'left', width: 18 },
-      { header: tc(`${columnsKey}.parent`), key: 'parent', align: 'left', width: 16 },
-      { header: tc(`${columnsKey}.hash`), key: 'hash', align: 'left', width: 10 },
-      { header: tc(`${columnsKey}.type`), key: 'type', align: 'left', width: 9 },
-      { header: tc(`${columnsKey}.pid`), key: 'pid', align: 'right', width: 8 },
-      { header: tc(`${columnsKey}.port`), key: 'port', align: 'right', width: 8 }
+      { header: tc(`${columnsKey}.columns.project`), key: 'project', align: 'left', width: 18 },
+      { header: tc(`${columnsKey}.columns.parent`), key: 'parent', align: 'left', width: 16 },
+      { header: tc(`${columnsKey}.columns.hash`), key: 'hash', align: 'left', width: 10 },
+      { header: tc(`${columnsKey}.columns.type`), key: 'type', align: 'left', width: 9 },
+      { header: tc(`${columnsKey}.columns.pid`), key: 'pid', align: 'right', width: 8 },
+      { header: tc(`${columnsKey}.columns.port`), key: 'port', align: 'right', width: 8 }
     ],
     data: tableData,
     showBorders: true,

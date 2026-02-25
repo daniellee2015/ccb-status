@@ -41,10 +41,14 @@ async function validatePid(pid, expectedWorkDir) {
     }
 
     // Check if command line contains CCB-related keywords
-    // Note: CCB askd daemon can be Python or Node.js process
+    // Note: CCB process can be the main ccb command or askd daemon
+    // The ccb command line typically ends with '/ccb' or contains 'ccb'
+    // The askd daemon contains 'askd' or 'claude-code-bridge'
     const isCCBProcess = psOutput.includes('ccb') ||
                          psOutput.includes('askd') ||
-                         psOutput.includes('claude-code-bridge');
+                         psOutput.includes('claude-code-bridge') ||
+                         psOutput.match(/\/ccb(\s|$)/) ||  // Matches '/ccb' at end or followed by space
+                         psOutput.includes('node') && psOutput.includes('ccb');
 
     if (!isCCBProcess) {
       return { valid: false, reason: 'Not a CCB process' };
