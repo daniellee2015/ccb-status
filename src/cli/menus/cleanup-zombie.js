@@ -50,7 +50,7 @@ async function showCleanupZombie() {
         console.log(`  ${tc('cleanupZombie.selectPrompt')}`);
         console.log('');
 
-        displayInstanceTable(zombieInstances, tc, 'cleanupZombie.columns');
+        displayInstanceTable(zombieInstances, tc, 'cleanupZombie');
       }
     },
     footer: {
@@ -66,7 +66,7 @@ async function showCleanupZombie() {
   }
 
   // Select instances
-  const selectedInstances = await selectInstances(zombieInstances, tc, 'cleanupZombie.selectInstances');
+  const selectedInstances = await selectInstances(zombieInstances, tc, 'cleanupZombie');
 
   if (!selectedInstances) {
     return 'back';

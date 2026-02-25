@@ -49,7 +49,7 @@ async function showKillAll() {
         console.log(`  ${tc('killAll.selectPrompt')}`);
         console.log('');
 
-        displayInstanceTable(killableInstances, tc, 'killAll.columns');
+        displayInstanceTable(killableInstances, tc, 'killAll');
       }
     },
     footer: {
@@ -65,7 +65,7 @@ async function showKillAll() {
   }
 
   // Select instances
-  const selectedInstances = await selectInstances(killableInstances, tc, 'killAll.selectInstances');
+  const selectedInstances = await selectInstances(killableInstances, tc, 'killAll');
 
   if (!selectedInstances) {
     return 'back';

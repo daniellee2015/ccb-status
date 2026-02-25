@@ -64,10 +64,10 @@ function displayInstanceTable(instances, tc, columnsKey) {
  * Show checkbox menu for instance selection
  * @param {Array} instances - Instances to select from
  * @param {Object} tc - Translation function
- * @param {string} promptKey - Key for prompt translation
+ * @param {string} operationKey - Base operation key (e.g., 'killActive', 'cleanupDead')
  * @returns {Promise<Array|null>} Selected instances or null if cancelled
  */
-async function selectInstances(instances, tc, promptKey) {
+async function selectInstances(instances, tc, operationKey) {
   const historyMap = getHistory();
 
   console.log('');
@@ -89,8 +89,16 @@ async function selectInstances(instances, tc, promptKey) {
   // Add cancel option at the end
   checkboxOptions.push(`0. ${tc('common.cancel')}`);
 
+  // Try operation-specific prompt, fallback to generic
+  let promptText;
+  try {
+    promptText = tc(`${operationKey}.checkboxTitle`);
+  } catch (e) {
+    promptText = tc('common.selectInstances');
+  }
+
   const checkboxResult = await menu.checkbox({
-    prompt: tc(promptKey),
+    prompt: promptText,
     options: checkboxOptions,
     minSelections: 0  // Allow 0 selections to enable cancel
   });

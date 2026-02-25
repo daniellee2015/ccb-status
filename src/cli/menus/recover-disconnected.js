@@ -43,10 +43,10 @@ async function showRecoverDisconnected() {
   }
 
   // Display disconnected instances table
-  await displayInstanceTable(disconnectedInstances, tc, 'recoverDisconnected.columns');
+  await displayInstanceTable(disconnectedInstances, tc, 'recoverDisconnected');
 
   // Select instances with cancel option
-  const selectedInstances = await selectInstances(disconnectedInstances, tc, 'recoverDisconnected.checkboxTitle');
+  const selectedInstances = await selectInstances(disconnectedInstances, tc, 'recoverDisconnected');
   if (!selectedInstances) {
     return 'back';
   }

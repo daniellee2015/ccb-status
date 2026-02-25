@@ -43,10 +43,10 @@ async function showRecoverOrphaned() {
   }
 
   // Display orphaned instances table
-  await displayInstanceTable(orphanedInstances, tc, 'recoverOrphaned.columns');
+  await displayInstanceTable(orphanedInstances, tc, 'recoverOrphaned');
 
   // Select instances with cancel option
-  const selectedInstances = await selectInstances(orphanedInstances, tc, 'recoverOrphaned.checkboxTitle');
+  const selectedInstances = await selectInstances(orphanedInstances, tc, 'recoverOrphaned');
   if (!selectedInstances) {
     return 'back';
   }

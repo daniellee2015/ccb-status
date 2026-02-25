@@ -69,6 +69,8 @@ async function showHistory() {
               statusDisplay = tc('history.status.orphaned');
             } else if (currentInst.status === 'zombie') {
               statusDisplay = tc('history.status.zombie');
+            } else if (currentInst.status === 'disconnected') {
+              statusDisplay = tc('history.status.disconnected');
             } else {
               statusDisplay = tc('history.status.dead');
             }

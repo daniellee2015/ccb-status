@@ -49,7 +49,7 @@ async function showKillActive() {
         console.log(`  ${tc('killActive.selectPrompt')}`);
         console.log('');
 
-        displayInstanceTable(activeInstances, tc, 'killActive.columns');
+        displayInstanceTable(activeInstances, tc, 'killActive');
       }
     },
     footer: {
@@ -65,7 +65,7 @@ async function showKillActive() {
   }
 
   // Show checkbox menu for selection
-  const selectedInstances = await selectInstances(activeInstances, tc, 'killActive.selectInstances');
+  const selectedInstances = await selectInstances(activeInstances, tc, 'killActive');
 
   if (!selectedInstances) {
     return 'back';
