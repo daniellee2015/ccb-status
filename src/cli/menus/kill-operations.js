@@ -24,7 +24,8 @@ async function showKillOperations() {
         options: [
           `1. ${tc('instanceManagement.killActive')} - \x1b[2m${tc('instanceManagement.killActiveHint')}\x1b[0m`,
           `2. ${tc('instanceManagement.killZombie')} - \x1b[2m${tc('instanceManagement.killZombieHint')}\x1b[0m`,
-          `3. ${tc('instanceManagement.killAll')} - \x1b[2m${tc('instanceManagement.killAllHint')}\x1b[0m`,
+          `3. ${tc('instanceManagement.killOrphaned')} - \x1b[2m${tc('instanceManagement.killOrphanedHint')}\x1b[0m`,
+          `4. ${tc('instanceManagement.killAll')} - \x1b[2m${tc('instanceManagement.killAllHint')}\x1b[0m`,
           `b. ${tc('instanceManagement.back')}`
         ],
         allowLetterKeys: true

@@ -152,6 +152,8 @@ module.exports = {
     killActiveHint: '杀死正在运行的 CCB 进程',
     killZombie: 'Kill Zombie Instances',
     killZombieHint: '杀死卡死的 CCB 进程',
+    killOrphaned: 'Kill Orphaned Instances',
+    killOrphanedHint: '杀死孤儿 CCB 进程（运行中但无专用 tmux）',
     killAll: 'Kill All Instances',
     killAllHint: '杀死所有 CCB 进程',
 
@@ -428,6 +430,30 @@ module.exports = {
       pid: 'PID',
       port: '端口',
       tmux: 'Tmux'
+    }
+  },
+
+  // Kill Orphaned
+  killOrphaned: {
+    title: 'Kill Orphaned Instances',
+    noInstances: '✓ 未找到孤儿实例',
+    selectPrompt: '选择要杀死的孤儿实例：',
+    checkboxTitle: '选择孤儿实例（空格切换，回车确认）',
+    confirmationWarning: '警告：即将杀死以下孤儿实例',
+    confirmPrompt: '确认杀死 {count} 个孤儿实例？',
+    killing: '正在杀死实例...',
+    killed: '已杀死 PID {pid}',
+    failed: '失败：{error}',
+    complete: 'Kill 操作完成',
+    select: '选择',
+    back: '返回',
+    columns: {
+      project: '项目',
+      parent: '父项目',
+      hash: '哈希',
+      type: '类型',
+      pid: 'PID',
+      port: '端口'
     }
   },
 

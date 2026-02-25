@@ -152,6 +152,8 @@ module.exports = {
     killActiveHint: 'Kill running CCB processes',
     killZombie: 'Kill Zombie Instances',
     killZombieHint: 'Kill stuck CCB processes',
+    killOrphaned: 'Kill Orphaned Instances',
+    killOrphanedHint: 'Kill orphaned CCB processes (running without dedicated tmux)',
     killAll: 'Kill All Instances',
     killAllHint: 'Kill all CCB processes',
 
@@ -428,6 +430,30 @@ module.exports = {
       pid: 'PID',
       port: 'Port',
       tmux: 'Tmux'
+    }
+  },
+
+  // Kill Orphaned
+  killOrphaned: {
+    title: 'Kill Orphaned Instances',
+    noInstances: '✓ No orphaned instances found',
+    selectPrompt: 'Select orphaned instances to kill:',
+    checkboxTitle: 'Select Orphaned Instances (Space to toggle, Enter to confirm)',
+    confirmationWarning: 'Warning: About to kill the following orphaned instances',
+    confirmPrompt: 'Confirm killing {count} orphaned instance(s)?',
+    killing: 'Killing instances...',
+    killed: 'Killed PID {pid}',
+    failed: 'Failed: {error}',
+    complete: 'Kill operation complete',
+    select: 'Select',
+    back: 'Back',
+    columns: {
+      project: 'Project',
+      parent: 'Parent',
+      hash: 'Hash',
+      type: 'Type',
+      pid: 'PID',
+      port: 'Port'
     }
   },
 

@@ -19,6 +19,7 @@ const { showCleanupOperations } = require('../src/cli/menus/cleanup-operations')
 const { showRestartOperations } = require('../src/cli/menus/restart-operations');
 const { showKillActive } = require('../src/cli/menus/kill-active');
 const { showKillZombie } = require('../src/cli/menus/kill-zombie');
+const { showKillOrphaned } = require('../src/cli/menus/kill-orphaned');
 const { showKillAll } = require('../src/cli/menus/kill-all');
 const { showCleanupDead } = require('../src/cli/menus/cleanup-dead');
 const { showCleanupZombie } = require('../src/cli/menus/cleanup-zombie');
@@ -104,7 +105,16 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
-              } else if (killAction.startsWith('3. Kill All Instances')) {
+              } else if (killAction.startsWith('3. Kill Orphaned Instances')) {
+                const result = await showKillOrphaned();
+                if (result === 'completed') {
+                  startSpinner('Re-detecting status...');
+                  detectionResult = await detectStatus();
+                  stopSpinner('Detection complete');
+                  console.log('');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              } else if (killAction.startsWith('4. Kill All Instances')) {
                 const result = await showKillAll();
                 if (result === 'completed') {
                   startSpinner('Re-detecting status...');
