@@ -7,19 +7,8 @@ const { renderTable, menu } = require('cli-menu-kit');
 const { getHistory } = require('./history-service');
 const { formatInstanceName } = require('./display-formatter');
 const { displayConfirmationTable } = require('./confirmation-helper');
+const { filterByStatus } = require('../utils/instance-filters');
 const path = require('path');
-
-/**
- * Filter instances by status
- * @param {Array} instances - All instances
- * @param {string|Array} status - Status to filter by (or array of statuses)
- * @returns {Array} Filtered instances
- */
-function filterInstancesByStatus(instances, status) {
-  if (Array.isArray(status)) {
-    return instances.filter(inst => status.includes(inst.status));
-  }
-  return instances.filter(inst => inst.status === status);
 }
 
 /**
@@ -147,7 +136,7 @@ async function confirmOperation(instances, tc, operationKey) {
 }
 
 module.exports = {
-  filterInstancesByStatus,
+  filterInstancesByStatus: filterByStatus,  // Re-export from instance-filters for backward compatibility
   displayInstanceTable,
   selectInstances,
   confirmOperation
