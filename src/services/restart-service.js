@@ -565,7 +565,7 @@ async function recoverOrphaned(instance) {
       console.log(`  Created new tmux window: ${windowName}`);
 
     // Get the new pane ID
-    const newPaneId = execSync(`tmux display-message -p '#{pane_id}'`, {
+    newPaneId = execSync(`tmux display-message -p '#{pane_id}'`, {
       encoding: 'utf8',
       timeout: 2000
     }).trim();
