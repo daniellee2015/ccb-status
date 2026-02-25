@@ -10,13 +10,13 @@
 const { renderPage } = require('cli-menu-kit');
 const os = require('os');
 const path = require('path');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { updateHistory, getHistory } = require('../../services/history-service');
 const { formatInstanceName } = require('../../services/display-formatter');
 const { tc } = require('../../i18n');
 
 async function showInstanceList() {
-  const instances = await getCCBInstances();
+  const instances = await getInstances();
 
   // Update history with current instances
   updateHistory(instances);

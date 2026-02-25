@@ -4,7 +4,7 @@
  */
 
 const { renderPage } = require('cli-menu-kit');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { recoverOrphaned } = require('../../services/restart-service');
 const { tc } = require('../../i18n');
 const path = require('path');
@@ -17,7 +17,7 @@ const {
 
 async function showRecoverOrphaned() {
   // Get all instances and filter orphaned ones
-  const instances = await getCCBInstances();
+  const instances = await getInstances();
   const orphanedInstances = filterInstancesByStatus(instances, 'orphaned');
 
   if (orphanedInstances.length === 0) {

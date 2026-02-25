@@ -5,7 +5,7 @@
 
 const { renderPage, renderTable } = require('cli-menu-kit');
 const { execSync } = require('child_process');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { getHistory } = require('../../services/history-service');
 const { formatInstanceName } = require('../../services/display-formatter');
 const { tc } = require('../../i18n');
@@ -22,7 +22,7 @@ const path = require('path');
 async function getTmuxSessions(onlyAttached = true) {
   try {
     // Get CCB instances first
-    const ccbInstances = await getCCBInstances();
+    const ccbInstances = await getInstances();
 
     // First, get list of attached sessions if needed
     const attachedSessions = new Set();

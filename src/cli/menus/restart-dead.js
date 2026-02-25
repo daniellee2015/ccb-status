@@ -4,7 +4,7 @@
  */
 
 const { renderPage } = require('cli-menu-kit');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { restartDead } = require('../../services/restart-service');
 const { tc } = require('../../i18n');
 const path = require('path');
@@ -17,7 +17,7 @@ const {
 
 async function showRestartDead() {
   // Get all instances and filter dead ones
-  const instances = await getCCBInstances();
+  const instances = await getInstances();
   const deadInstances = filterInstancesByStatus(instances, 'dead');
 
   if (deadInstances.length === 0) {

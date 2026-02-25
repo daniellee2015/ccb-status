@@ -4,7 +4,7 @@
  */
 
 const { renderPage } = require('cli-menu-kit');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { recoverDisconnected } = require('../../services/restart-service');
 const { tc } = require('../../i18n');
 const path = require('path');
@@ -17,7 +17,7 @@ const {
 
 async function showRecoverDisconnected() {
   // Get all instances and filter disconnected ones
-  const instances = await getCCBInstances();
+  const instances = await getInstances();
   const disconnectedInstances = filterInstancesByStatus(instances, 'disconnected');
 
   if (disconnectedInstances.length === 0) {

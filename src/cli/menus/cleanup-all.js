@@ -4,7 +4,7 @@
  */
 
 const { renderPage } = require('cli-menu-kit');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { tc } = require('../../i18n');
 const { safeKillProcess, validateWorkDir } = require('../../utils/pid-validator');
 const path = require('path');
@@ -18,7 +18,7 @@ const {
 
 async function showCleanupAll() {
   // Get all instances (dead + zombie)
-  const instances = await getCCBInstances();
+  const instances = await getInstances();
   const cleanableInstances = filterInstancesByStatus(instances, ['dead', 'zombie']);
 
   if (cleanableInstances.length === 0) {

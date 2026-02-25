@@ -4,7 +4,7 @@
  */
 
 const { renderPage } = require('cli-menu-kit');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { filterInstancesByStatus, displayInstanceTable, selectInstances, confirmOperation } = require('../../services/instance-operations-helper');
 const { tc } = require('../../i18n');
 const { safeKillProcess } = require('../../utils/pid-validator');
@@ -12,7 +12,7 @@ const path = require('path');
 
 async function showKillActive() {
   // Get all instances and filter active
-  const instances = await getCCBInstances();
+  const instances = await getInstances();
   const activeInstances = filterInstancesByStatus(instances, 'active');
 
   if (activeInstances.length === 0) {

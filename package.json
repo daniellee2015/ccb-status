@@ -9,6 +9,8 @@
   },
   "scripts": {
     "build": "echo 'No build needed for now'",
+    "test": "node test/status-resolver.contract.test.js",
+    "test:contract": "node test/status-resolver.contract.test.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

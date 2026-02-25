@@ -5,7 +5,7 @@
 
 const { renderPage, renderTable } = require('cli-menu-kit');
 const { getHistoryArray, getHistory } = require('../../services/history-service');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { formatInstanceName, formatTmuxDisplay } = require('../../services/display-formatter');
 const { tc } = require('../../i18n');
 const path = require('path');
@@ -13,7 +13,7 @@ const os = require('os');
 
 async function showHistory() {
   const history = getHistoryArray();
-  const currentInstances = await getCCBInstances();
+  const currentInstances = await getInstances();
   const historyMap = getHistory(); // Get full history map for parent lookup
 
   // Create a map of current instances by hash for quick lookup

@@ -4,7 +4,7 @@
  */
 
 const { renderPage, renderTable } = require('cli-menu-kit');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { groupByStatus } = require('../../utils/instance-filters');
 const { tc } = require('../../i18n');
 const path = require('path');
@@ -105,7 +105,7 @@ async function showCleanup(lastDetection = null) {
 }
 
 async function detectStatus() {
-  const instances = await getCCBInstances();
+  const instances = await getInstances();
   return groupByStatus(instances);
 }
 

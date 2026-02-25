@@ -4,7 +4,7 @@
  */
 
 const { renderPage } = require('cli-menu-kit');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { filterInstancesByStatus, displayInstanceTable, selectInstances, confirmOperation } = require('../../services/instance-operations-helper');
 const { tc } = require('../../i18n');
 const { safeKillProcess, validateWorkDir } = require('../../utils/pid-validator');
@@ -13,7 +13,7 @@ const fs = require('fs').promises;
 
 async function showCleanupZombie() {
   // Get all instances and filter zombies
-  const instances = await getCCBInstances();
+  const instances = await getInstances();
   const zombieInstances = filterInstancesByStatus(instances, 'zombie');
 
   if (zombieInstances.length === 0) {

@@ -1,0 +1,35 @@
+{
+  "env": {
+    "node": true,
+    "es2021": true
+  },
+  "extends": "eslint:recommended",
+  "parserOptions": {
+    "ecmaVersion": 12
+  },
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["**/services/instance-service"],
+            "message": "Import from utils/instance-query instead. All menus MUST use the unified query API."
+          },
+          {
+            "group": ["**/services/instance-operations-helper"],
+            "message": "Import filtering functions from utils/instance-filters instead."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/utils/instance-query.js", "src/services/*.js"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
+}

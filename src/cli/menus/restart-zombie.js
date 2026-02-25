@@ -4,7 +4,7 @@
  */
 
 const { renderPage } = require('cli-menu-kit');
-const { getCCBInstances } = require('../../services/instance-service');
+const { getInstances } = require('../../utils/instance-query');
 const { restartZombie } = require('../../services/restart-service');
 const { tc } = require('../../i18n');
 const path = require('path');
@@ -17,7 +17,7 @@ const {
 
 async function showRestartZombie() {
   // Get all instances and filter zombies
-  const instances = await getCCBInstances();
+  const instances = await getInstances();
   const zombies = filterInstancesByStatus(instances, 'zombie');
 
   if (zombies.length === 0) {
