@@ -441,11 +441,18 @@ async function recoverOrphaned(instance) {
     const windowName = `CCB-${projectName}`;
 
     try {
-      execSync(`tmux new-window -n \"${windowName}\"`, {
+      execSync(`tmux new-window -n "${windowName}"`, {
         encoding: 'utf8',
         timeout: 2000
       });
       console.log(`  Created new tmux window: ${windowName}`);
+
+    // Get the new pane ID
+    const newPaneId = execSync(`tmux display-message -p '#{pane_id}'`, {
+      encoding: 'utf8',
+      timeout: 2000
+    }).trim();
+
     } catch (e) {
       return {
         success: false,
@@ -453,9 +460,9 @@ async function recoverOrphaned(instance) {
       };
     }
 
-    // Step 4: Change to work directory
+    // Step 4: Change to work directory with explicit target
     console.log(`  Changing to work directory: ${instance.workDir}`);
-    execSync(`tmux send-keys \"cd ${instance.workDir}\" Enter`, {
+    execSync(`tmux send-keys -t ${newPaneId} "cd ${instance.workDir}" Enter`, {
       encoding: 'utf8',
       timeout: 2000
     });
