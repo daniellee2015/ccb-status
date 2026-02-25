@@ -555,7 +555,7 @@ async function recoverOrphaned(instance) {
 
     // Step 3: No detached panes found, create new window
     console.log(`  No detached CCB panes found, creating new window`);
-    const windowName = `CCB-${projectName}`;
+    let newPaneId;    const windowName = `CCB-${projectName}`;
 
     try {
       execSync(`tmux new-window -n "${windowName}"`, {

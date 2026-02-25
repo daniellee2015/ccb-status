@@ -87,10 +87,11 @@ async function showCleanupZombie() {
   for (const instance of selectedInstances) {
     const projectName = path.basename(instance.workDir);
     try {
-      // Try to kill the process first (if it's a defunct zombie)
+      // Try to kill the process first (zombie = askd running but CCB not running)
       let killed = false;
-      if (instance.pid) {
-        const killResult = await safeKillProcess(instance.pid, instance.workDir);
+      const pidToKill = instance.askdPid || instance.pid;
+      if (pidToKill) {
+        const killResult = await safeKillProcess(pidToKill, instance.workDir);
         if (killResult.success) {
           killed = true;
         } else if (killResult.error.includes('Not a CCB process')) {

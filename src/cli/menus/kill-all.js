@@ -86,10 +86,12 @@ async function showKillAll() {
   for (const instance of selectedInstances) {
     const projectName = path.basename(instance.workDir);
     try {
-      if (instance.pid) {
-        const result = await safeKillProcess(instance.pid, instance.workDir);
+      // For kill-all: prefer askdPid for graceful shutdown, fallback to pid
+      const pidToKill = instance.askdPid || instance.pid;
+      if (pidToKill) {
+        const result = await safeKillProcess(pidToKill, instance.workDir);
         if (result.success) {
-          console.log(`  \x1b[32m✓\x1b[0m ${projectName} - ${tc('killAll.killed', { pid: instance.pid })}`);
+          console.log(`  \x1b[32m✓\x1b[0m ${projectName} - ${tc('killAll.killed', { pid: pidToKill })}`);
         } else {
           console.log(`  \x1b[31m✗\x1b[0m ${projectName} - ${tc('killAll.failed', { error: result.error })}`);
         }

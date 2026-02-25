@@ -294,8 +294,21 @@ async function getCCBInstances() {
             }
           } else {
             // askd PID exists but port not listening
-            status = 'zombie';
-            isAlive = false;
+            // Check if CCB is still alive - could be transient port issue
+            if (ccbAlive) {
+              // CCB alive but port not listening - could be starting up or transient issue
+              if (tmuxPane) {
+                status = 'active';  // Treat as active if CCB + tmux present
+                isAlive = true;
+              } else {
+                status = 'orphaned';  // CCB alive but no tmux
+                isAlive = false;
+              }
+            } else {
+              // Neither CCB nor port listening - true zombie
+              status = 'zombie';
+              isAlive = false;
+            }
           }
         } else {
           // askd daemon is dead
