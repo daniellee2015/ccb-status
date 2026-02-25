@@ -11,18 +11,17 @@ const { execSync } = require('child_process');
  */
 function getRunningCCBProcesses() {
   try {
-    // Step 1: Use ps + grep to find CCB process PIDs
-    const result = execSync('ps aux | grep -E "/ccb$|/ccb " | grep -v grep', {
+    // Use ps + awk for reliable detection (pgrep has limitations)
+    // Filter by exact path to avoid false matches
+    const result = execSync('ps aux | awk \'$11 ~ /Python/ && $12 ~ /\\.local\\/bin\\/ccb$/ {print $2}\'', {
       encoding: 'utf8',
-      timeout: 2000
+      timeout: 5000  // Increased timeout for systems with many processes
     });
 
     const ccbPids = [];
     for (const line of result.split('\n')) {
       if (!line) continue;
-      const parts = line.trim().split(/\s+/);
-      if (parts.length < 11) continue;
-      const pid = parseInt(parts[1]);
+      const pid = parseInt(line.trim());
       if (pid) ccbPids.push(pid);
     }
 
@@ -64,18 +63,16 @@ function getRunningCCBProcesses() {
  */
 function getRunningAskdProcesses() {
   try {
-    // Find all askd processes
-    const result = execSync('ps aux | grep -E "/askd$|/askd " | grep -v grep', {
+    // Use ps + awk for reliable detection
+    const result = execSync('ps aux | awk \'$11 ~ /Python/ && $12 ~ /\\/askd$/ {print $2}\'', {
       encoding: 'utf8',
-      timeout: 2000
+      timeout: 5000  // Increased timeout for systems with many processes
     });
 
     const askdPids = [];
     for (const line of result.split('\n')) {
       if (!line) continue;
-      const parts = line.trim().split(/\s+/);
-      if (parts.length < 11) continue;
-      const pid = parseInt(parts[1]);
+      const pid = parseInt(line.trim());
       if (pid) askdPids.push(pid);
     }
 
