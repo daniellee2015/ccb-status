@@ -66,11 +66,13 @@ async function showKillZombie() {
   for (const instance of selectedInstances) {
     const projectName = path.basename(instance.workDir);
     try {
-      // Kill daemon process with validation
-      if (instance.pid) {
-        const result = await safeKillProcess(instance.pid, instance.workDir);
+      // For zombie: kill askd daemon (askdPid)
+      // Zombie = askd running but CCB not running or port not listening
+      const pidToKill = instance.askdPid || instance.pid;
+      if (pidToKill) {
+        const result = await safeKillProcess(pidToKill, instance.workDir);
         if (result.success) {
-          console.log(`  \x1b[32m✓\x1b[0m ${projectName} - ${tc('killZombie.killed', { pid: instance.pid })}`);
+          console.log(`  \x1b[32m✓\x1b[0m ${projectName} - ${tc('killZombie.killed', { pid: pidToKill })}`);
           results.push({ instance, success: true });
         } else {
           console.log(`  \x1b[31m✗\x1b[0m ${projectName} - ${tc('killZombie.failed', { error: result.error })}`);

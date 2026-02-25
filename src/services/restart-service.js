@@ -105,23 +105,55 @@ function tmuxPaneExists(paneId) {
 async function restartZombie(instance) {
   try {
     const projectName = path.basename(instance.workDir);
-    
-    // Step 1: Kill askd daemon process
-    if (instance.pid) {
+
+    // Step 1: Kill askd daemon process (zombie = askd running but CCB not running)
+    const askdPid = instance.askdPid || instance.pid;
+    if (askdPid) {
       try {
-        process.kill(instance.pid, 'SIGKILL');
-        console.log(`  Killed daemon PID ${instance.pid}`);
+        process.kill(askdPid, 'SIGKILL');
+        console.log(`  Killed daemon PID ${askdPid}`);
       } catch (e) {
         // Process might already be dead
-        console.log(`  Daemon PID ${instance.pid} already dead`);
+        console.log(`  Daemon PID ${askdPid} already dead`);
       }
     }
 
     // Step 2: Check if tmux pane exists
     if (!instance.tmuxPane || !tmuxPaneExists(instance.tmuxPane.id)) {
+      // Pane doesn't exist, create new window (fallback)
+      console.log(`  Tmux pane not found, creating new window`);
+      const windowName = `CCB-${projectName}`;
+      execSync(`tmux new-window -n "${windowName}"`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+
+      // Get the new pane ID
+      const newPaneId = execSync(`tmux display-message -p '#{pane_id}'`, {
+        encoding: 'utf8',
+        timeout: 2000
+      }).trim();
+
+      // Change to work directory
+      execSync(`tmux send-keys -t ${newPaneId} "cd ${instance.workDir}" Enter`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+
+      // Wait a bit
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Restart CCB with correct command
+      const command = getRestartCommand(instance);
+      execSync(`tmux send-keys -t ${newPaneId} "${command}" Enter`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+      console.log(`  Created new window and restarted with command: ${command}`);
+
       return {
-        success: false,
-        message: 'Tmux pane not found'
+        success: true,
+        message: 'Created new window and restarted'
       };
     }
 
@@ -202,8 +234,14 @@ async function restartDead(instance) {
       timeout: 2000
     });
 
-    // Change to work directory
-    execSync(`tmux send-keys "cd ${instance.workDir}" Enter`, {
+    // Get the new pane ID
+    const newPaneId = execSync(`tmux display-message -p '#{pane_id}'`, {
+      encoding: 'utf8',
+      timeout: 2000
+    }).trim();
+
+    // Change to work directory with explicit target
+    execSync(`tmux send-keys -t ${newPaneId} "cd ${instance.workDir}" Enter`, {
       encoding: 'utf8',
       timeout: 2000
     });
@@ -211,8 +249,8 @@ async function restartDead(instance) {
     // Wait a bit
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Start CCB
-    execSync(`tmux send-keys "${command}" Enter`, {
+    // Start CCB with explicit target
+    execSync(`tmux send-keys -t ${newPaneId} "${command}" Enter`, {
       encoding: 'utf8',
       timeout: 2000
     });
@@ -240,25 +278,26 @@ async function recoverDisconnected(instance) {
   try {
     const projectName = path.basename(instance.workDir);
 
-    // Step 1: Kill CCB daemon process
-    if (instance.pid) {
+    // Step 1: Kill CCB process (disconnected = CCB alive but askd dead)
+    const ccbPid = instance.ccbPid || instance.pid;
+    if (ccbPid) {
       try {
-        process.kill(instance.pid, 'SIGTERM'); // Use SIGTERM first for graceful shutdown
-        console.log(`  Sent SIGTERM to CCB daemon PID ${instance.pid}`);
+        process.kill(ccbPid, 'SIGTERM'); // Use SIGTERM first for graceful shutdown
+        console.log(`  Sent SIGTERM to CCB process PID ${ccbPid}`);
 
         // Wait a bit for graceful shutdown
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Check if still alive, force kill if needed
         try {
-          process.kill(instance.pid, 0); // Check if process exists
-          process.kill(instance.pid, 'SIGKILL'); // Force kill
-          console.log(`  Force killed CCB daemon PID ${instance.pid}`);
+          process.kill(ccbPid, 0); // Check if process exists
+          process.kill(ccbPid, 'SIGKILL'); // Force kill
+          console.log(`  Force killed CCB process PID ${ccbPid}`);
         } catch (e) {
-          console.log(`  CCB daemon PID ${instance.pid} terminated gracefully`);
+          console.log(`  CCB process PID ${ccbPid} terminated gracefully`);
         }
       } catch (e) {
-        console.log(`  CCB daemon PID ${instance.pid} already dead`);
+        console.log(`  CCB process PID ${ccbPid} already dead`);
       }
     }
 
@@ -305,9 +344,15 @@ async function recoverDisconnected(instance) {
         timeout: 2000
       });
 
-      // Change to work directory
+      // Get the new pane ID
+      const newPaneId = execSync(`tmux display-message -p '#{pane_id}'`, {
+        encoding: 'utf8',
+        timeout: 2000
+      }).trim();
+
+      // Change to work directory with explicit target
       console.log(`  Changing to work directory: ${instance.workDir}`);
-      execSync(`tmux send-keys "cd ${instance.workDir}" Enter`, {
+      execSync(`tmux send-keys -t ${newPaneId} "cd ${instance.workDir}" Enter`, {
         encoding: 'utf8',
         timeout: 2000
       });
@@ -315,9 +360,9 @@ async function recoverDisconnected(instance) {
       // Wait a bit
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Start CCB
+      // Start CCB with explicit target
       console.log(`  Starting with command: ${command}`);
-      execSync(`tmux send-keys "${command}" Enter`, {
+      execSync(`tmux send-keys -t ${newPaneId} "${command}" Enter`, {
         encoding: 'utf8',
         timeout: 2000
       });

@@ -87,11 +87,13 @@ async function showKillActive() {
   for (const instance of selectedInstances) {
     const projectName = path.basename(instance.workDir);
     try {
-      // Kill daemon process with validation
-      if (instance.pid) {
-        const result = await safeKillProcess(instance.pid, instance.workDir);
+      // For active: kill askd daemon first (graceful shutdown)
+      // Active = both askd and CCB running with tmux pane
+      const pidToKill = instance.askdPid || instance.pid;
+      if (pidToKill) {
+        const result = await safeKillProcess(pidToKill, instance.workDir);
         if (result.success) {
-          console.log(`  \x1b[32m✓\x1b[0m ${projectName} - ${tc('killActive.killed', { pid: instance.pid })}`);
+          console.log(`  \x1b[32m✓\x1b[0m ${projectName} - ${tc('killActive.killed', { pid: pidToKill })}`);
           results.push({ instance, success: true });
         } else {
           console.log(`  \x1b[31m✗\x1b[0m ${projectName} - ${tc('killActive.failed', { error: result.error })}`);

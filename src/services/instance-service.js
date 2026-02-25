@@ -262,7 +262,7 @@ async function getCCBInstances() {
 
         processedWorkDirs.add(workDir);
 
-        // Determine status: Active, Orphaned, Zombie, or Dead
+        // Determine status based on both askd daemon and CCB process
         let status = 'dead';
         let isAlive = false;
         const tmuxPane = tmuxPanesMap.get(workDir) || null;
@@ -270,14 +270,16 @@ async function getCCBInstances() {
         // Check if CCB process is actually running (not just askd daemon)
         const ccbProcess = ccbProcesses.find(p => p.workDir === workDir);
 
-        if (isPidAlive(pid)) {
+        const askdAlive = isPidAlive(pid);
+        const ccbAlive = ccbProcess !== null;
+
+        if (askdAlive) {
           // askd daemon PID exists, check if port is listening
           const portListening = await isPortListening(port, host);
           if (portListening) {
             // askd daemon running and port listening
-            // But we need to check if CCB process is also running
-            if (ccbProcess) {
-              // CCB process is running
+            if (ccbAlive) {
+              // Both askd and CCB are running
               if (tmuxPane) {
                 status = 'active';  // Has tmux window, truly active
                 isAlive = true;
@@ -286,22 +288,34 @@ async function getCCBInstances() {
                 isAlive = false;
               }
             } else {
-              // askd daemon running but CCB process not running
+              // askd running but CCB process not running
               status = 'zombie';  // Zombie state
               isAlive = false;
             }
           } else {
+            // askd PID exists but port not listening
             status = 'zombie';
-            isAlive = false; // Zombie is considered not alive
+            isAlive = false;
           }
         } else {
-          status = 'dead';
-          isAlive = false;
+          // askd daemon is dead
+          if (ccbAlive) {
+            // CCB process still running but askd is dead - disconnected state
+            status = 'disconnected';
+            isAlive = false;
+          } else {
+            // Both askd and CCB are dead
+            status = 'dead';
+            isAlive = false;
+          }
         }
 
         instances.push({
           workDir: workDir,
-          pid: ccbProcess ? ccbProcess.pid : pid,  // Prefer CCB process PID over askd PID
+          // PID semantics: displayPid for UI, askdPid/ccbPid for operations
+          pid: ccbProcess ? ccbProcess.pid : pid,  // Display PID (prefer CCB for user visibility)
+          askdPid: pid,  // askd daemon PID (for daemon control)
+          ccbPid: ccbProcess ? ccbProcess.pid : null,  // CCB process PID (for process control)
           port: port,
           host: host,
           status: status,
@@ -311,8 +325,6 @@ async function getCCBInstances() {
           parentPid: data.parent_pid,
           managed: data.managed,
           tmuxPane: tmuxPane,
-          ccbPid: ccbProcess ? ccbProcess.pid : null,
-          askdPid: pid,
           llmStatus: getLLMStatus(workDir),
           uptime: getUptime(data.started_at)
         });
@@ -337,7 +349,10 @@ async function getCCBInstances() {
 
     instances.push({
       workDir: proc.workDir,
-      pid: proc.pid,
+      // For disconnected: CCB process exists but no state file
+      pid: proc.pid,  // Display PID (CCB process)
+      askdPid: askdInfo.pid || null,  // askd PID if found
+      ccbPid: proc.pid,  // CCB process PID
       port: askdInfo.port || 0,
       host: '127.0.0.1',
       status: 'disconnected',  // New status!
