@@ -170,6 +170,8 @@ module.exports = {
     restartDeadHint: '重启已退出的进程',
     recoverDisconnected: 'Recover Disconnected Instances',
     recoverDisconnectedHint: '恢复状态文件丢失的实例',
+    recoverOrphaned: 'Recover Orphaned Instances',
+    recoverOrphanedHint: '重新连接到后台运行的实例',
     restartAll: 'Restart All Instances',
     restartAllHint: '重启所有实例',
 
@@ -324,6 +326,32 @@ module.exports = {
       port: '端口',
       status: '状态',
       tmux: 'Tmux'
+    }
+  },
+
+  // Recover Orphaned
+  recoverOrphaned: {
+    title: '恢复孤儿实例',
+    noOrphaned: '✓ 未找到孤儿实例',
+    selectPrompt: '选择要恢复的实例：',
+    checkboxTitle: '选择孤儿实例（空格切换，回车确认）',
+    confirmationWarning: '警告：即将为以下孤儿实例重新创建 tmux 窗口',
+    confirmPrompt: '确认恢复 {count} 个孤儿实例？',
+    recovering: '正在恢复实例...',
+    processing: '正在处理 {project} [{hash}]...',
+    successCount: '✓ 成功恢复 {count} 个实例',
+    failCount: '✗ 恢复失败 {count} 个实例',
+    pressEnter: '按 Enter 键继续...',
+    select: '选择',
+    back: '返回',
+    columns: {
+      project: '项目',
+      parent: '父项目',
+      hash: '哈希',
+      type: '类型',
+      pid: 'PID',
+      port: '端口',
+      status: '状态'
     }
   },
 

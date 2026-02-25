@@ -170,6 +170,8 @@ module.exports = {
     restartDeadHint: 'Restart exited processes',
     recoverDisconnected: 'Recover Disconnected Instances',
     recoverDisconnectedHint: 'Recover instances with missing state files',
+    recoverOrphaned: 'Recover Orphaned Instances',
+    recoverOrphanedHint: 'Reconnect to background running instances',
     restartAll: 'Restart All Instances',
     restartAllHint: 'Restart all instances',
 
@@ -324,6 +326,32 @@ module.exports = {
       port: 'Port',
       status: 'Status',
       tmux: 'Tmux'
+    }
+  },
+
+  // Recover Orphaned
+  recoverOrphaned: {
+    title: 'Recover Orphaned Instances',
+    noOrphaned: '✓ No orphaned instances found',
+    selectPrompt: 'Select instances to recover:',
+    checkboxTitle: 'Select orphaned instances (Space to toggle, Enter to confirm)',
+    confirmationWarning: 'Warning: Will recreate tmux windows for the following orphaned instances',
+    confirmPrompt: 'Confirm recovery of {count} orphaned instance(s)?',
+    recovering: 'Recovering instances...',
+    processing: 'Processing {project} [{hash}]...',
+    successCount: '✓ Successfully recovered {count} instance(s)',
+    failCount: '✗ Failed to recover {count} instance(s)',
+    pressEnter: 'Press Enter to continue...',
+    select: 'Select',
+    back: 'Back',
+    columns: {
+      project: 'Project',
+      parent: 'Parent',
+      hash: 'Hash',
+      type: 'Type',
+      pid: 'PID',
+      port: 'Port',
+      status: 'Status'
     }
   },
 
