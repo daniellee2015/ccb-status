@@ -4,6 +4,7 @@
  */
 
 const { execSync } = require('child_process');
+const { isPidAlive } = require('./instance-checks');
 
 /**
  * Get all running CCB processes with their work directories
@@ -125,21 +126,6 @@ function findCCBProcessByWorkDir(workDir) {
 function findAskdProcessByWorkDir(workDir) {
   const processes = getRunningAskdProcesses();
   return processes.find(p => p.workDir === workDir) || null;
-}
-
-/**
- * Check if a PID is alive
- * @param {number} pid - Process ID
- * @returns {boolean} True if process is alive
- */
-function isPidAlive(pid) {
-  if (!pid || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (e) {
-    return false;
-  }
 }
 
 module.exports = {
