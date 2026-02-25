@@ -81,20 +81,21 @@ async function showCleanupAll() {
 
       // If zombie, try to kill the process first with validation
       // For zombie processes (<defunct>), killing may fail but that's OK
-      if (instance.status === 'zombie' && instance.pid) {
-        const killResult = await safeKillProcess(instance.pid, instance.workDir);
+      if (instance.status === 'zombie' && instance.askdPid) {
+        const killResult = await safeKillProcess(instance.askdPid, instance.workDir);
         if (killResult.success) {
           killed = true;
         } else if (killResult.error.includes('Process not found')) {
           // Process already dead, that's fine
-          killed = false;
+          killed = true;  // Consider it killed if process not found
         } else if (killResult.error.includes('Not a CCB process')) {
           // Might be a <defunct> zombie process, skip killing and just cleanup
-          killed = false;
+          killed = true;  // Consider it safe to cleanup
         } else {
-          // Other errors, log but continue with cleanup
-          console.log(`  \x1b[33m⚠\x1b[0m ${projectName} - Could not kill process: ${killResult.error}`);
-          killed = false;
+          // Other errors - DO NOT cleanup state file
+          console.log(`  \x1b[31m✗\x1b[0m ${projectName} - Kill failed: ${killResult.error}, skipping cleanup`);
+          results.push({ instance, success: false, error: killResult.error });
+          continue;  // Skip to next instance
         }
       }
 

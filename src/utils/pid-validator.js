@@ -54,6 +54,39 @@ async function validatePid(pid, expectedWorkDir) {
       return { valid: false, reason: 'Not a CCB process' };
     }
 
+    // Validate work directory if provided
+    if (expectedWorkDir) {
+      try {
+        // Use lsof to get the current working directory of the process
+        const lsofOutput = execSync(
+          `lsof -a -d cwd -p ${pid} 2>/dev/null || true`,
+          { encoding: 'utf8', timeout: 2000 }
+        ).trim();
+
+        if (lsofOutput) {
+          // Parse lsof output to get work directory
+          const lines = lsofOutput.split('\n');
+          for (const line of lines) {
+            if (line.includes('cwd')) {
+              const parts = line.trim().split(/\s+/);
+              if (parts.length >= 9) {
+                const actualWorkDir = parts.slice(8).join(' ');
+                // Resolve both paths to absolute for comparison
+                const resolvedExpected = path.resolve(expectedWorkDir);
+                const resolvedActual = path.resolve(actualWorkDir);
+                if (resolvedExpected !== resolvedActual) {
+                  return { valid: false, reason: `Work directory mismatch: expected ${resolvedExpected}, got ${resolvedActual}` };
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // lsof failed, skip workDir validation but allow process validation to pass
+        // This can happen if process exits between checks
+      }
+    }
+
     return { valid: true };
   } catch (e) {
     return { valid: false, reason: `Validation error: ${e.message}` };
