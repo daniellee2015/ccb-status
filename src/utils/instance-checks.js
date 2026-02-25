@@ -245,76 +245,6 @@ function hasDedicatedTmuxSession(workDir) {
   return pane !== null;
 }
 
-/**
- * Composite check: Is instance Active?
- * Active = all 6 conditions satisfied
- * @param {Object} instance - Instance object with askdPid, ccbPid, port, workDir
- * @returns {Promise<boolean>} True if instance is Active
- */
-async function isInstanceActive(instance) {
-  const askdAlive = isAskdAlive(instance.askdPid);
-  const ccbAlive = isCcbAlive(instance.ccbPid);
-  const portListening = await isPortListening(instance.port, instance.host || '127.0.0.1');
-  const hasTmux = hasDedicatedTmuxSession(instance.workDir);
-
-  return askdAlive && ccbAlive && portListening && hasTmux;
-}
-
-/**
- * Composite check: Is instance Orphaned?
- * Orphaned = processes alive + port listening + no dedicated tmux
- * @param {Object} instance - Instance object
- * @returns {Promise<boolean>} True if instance is Orphaned
- */
-async function isInstanceOrphaned(instance) {
-  const askdAlive = isAskdAlive(instance.askdPid);
-  const ccbAlive = isCcbAlive(instance.ccbPid);
-  const portListening = await isPortListening(instance.port, instance.host || '127.0.0.1');
-  const hasTmux = hasDedicatedTmuxSession(instance.workDir);
-
-  return askdAlive && ccbAlive && portListening && !hasTmux;
-}
-
-/**
- * Composite check: Is instance Zombie?
- * Zombie = askd alive + ccb dead + port listening
- * @param {Object} instance - Instance object
- * @returns {Promise<boolean>} True if instance is Zombie
- */
-async function isInstanceZombie(instance) {
-  const askdAlive = isAskdAlive(instance.askdPid);
-  const ccbAlive = isCcbAlive(instance.ccbPid);
-  const portListening = await isPortListening(instance.port, instance.host || '127.0.0.1');
-
-  return askdAlive && !ccbAlive && portListening;
-}
-
-/**
- * Composite check: Is instance Disconnected?
- * Disconnected = askd dead + ccb alive
- * @param {Object} instance - Instance object
- * @returns {boolean} True if instance is Disconnected
- */
-function isInstanceDisconnected(instance) {
-  const askdAlive = isAskdAlive(instance.askdPid);
-  const ccbAlive = isCcbAlive(instance.ccbPid);
-
-  return !askdAlive && ccbAlive;
-}
-
-/**
- * Composite check: Is instance Dead?
- * Dead = both askd and ccb dead
- * @param {Object} instance - Instance object
- * @returns {boolean} True if instance is Dead
- */
-function isInstanceDead(instance) {
-  const askdAlive = isAskdAlive(instance.askdPid);
-  const ccbAlive = isCcbAlive(instance.ccbPid);
-
-  return !askdAlive && !ccbAlive;
-}
-
 module.exports = {
   // Basic checks
   isPidAlive,
@@ -332,12 +262,5 @@ module.exports = {
   getProcessWorkDir,
   matchesWorkDir,
   findTmuxPaneByWorkDir,
-  hasDedicatedTmuxSession,
-
-  // Composite state checks
-  isInstanceActive,
-  isInstanceOrphaned,
-  isInstanceZombie,
-  isInstanceDisconnected,
-  isInstanceDead
+  hasDedicatedTmuxSession
 };

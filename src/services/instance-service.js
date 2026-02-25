@@ -3,7 +3,8 @@
  * Handles CCB instance detection and management
  *
  * CRITICAL: Uses atomic check functions from instance-checks.js
- * DO NOT duplicate check logic here
+ * Status determination delegated to status-resolver.js
+ * DO NOT duplicate check or status logic here
  */
 
 const fs = require('fs');
@@ -18,6 +19,7 @@ const {
   hasDedicatedTmuxSession,
   findTmuxPaneByWorkDir
 } = require('../utils/instance-checks');
+const { resolveStatus } = require('../utils/status-resolver');
 
 /**
  * Get tmux pane ID for work directory
@@ -266,59 +268,21 @@ async function getCCBInstances() {
         // Check if CCB process is actually running (not just askd daemon)
         const ccbProcess = ccbProcesses.find(p => p.workDir === workDir);
 
-        // Use atomic check functions
+        // Collect component states (snapshot)
         const askdAlive = isAskdAlive(pid);
         const ccbAlive = isCcbAlive(ccbProcess ? ccbProcess.pid : null);
+        const portListening = await isPortListening(port, host);
+        const hasDedicatedTmux = tmuxPane !== null;
 
-        if (askdAlive) {
-          // askd daemon PID exists, check if port is listening
-          const portListening = await isPortListening(port, host);
-          if (portListening) {
-            // askd daemon running and port listening
-            if (ccbAlive) {
-              // Both askd and CCB are running
-              if (tmuxPane) {
-                status = 'active';  // Has dedicated tmux session
-                isAlive = true;
-              } else {
-                status = 'orphaned';  // No dedicated tmux session
-                isAlive = false;
-              }
-            } else {
-              // askd running but CCB process not running
-              status = 'zombie';  // Zombie state
-              isAlive = false;
-            }
-          } else {
-            // askd PID exists but port not listening
-            // Check if CCB is still alive - could be transient port issue
-            if (ccbAlive) {
-              // CCB alive but port not listening - could be starting up or transient issue
-              if (tmuxPane) {
-                status = 'active';  // Treat as active if CCB + tmux present
-                isAlive = true;
-              } else {
-                status = 'orphaned';  // CCB alive but no tmux
-                isAlive = false;
-              }
-            } else {
-              // Neither CCB nor port listening - true zombie
-              status = 'zombie';
-              isAlive = false;
-            }
-          }
-        } else {
-          // askd daemon is dead
-          if (ccbAlive) {
-            // CCB process still running but askd is dead - disconnected state
-            status = 'disconnected';
-            isAlive = false;
-          } else {
-            // Both askd and CCB are dead
-            status = 'dead';
-            isAlive = false;
-          }
-        }
+        // Delegate status determination to pure resolver
+        const snapshot = {
+          askdAlive,
+          ccbAlive,
+          portListening,
+          hasDedicatedTmux
+        };
+        status = resolveStatus(snapshot);
+        isAlive = (status === 'active');
 
         instances.push({
           workDir: workDir,
