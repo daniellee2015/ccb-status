@@ -21,60 +21,26 @@ const path = require('path');
  */
 async function getTmuxSessions(onlyAttached = true) {
   try {
-    // Get CCB instances first
+    // Get CCB instances first (with tmux info already detected via PID lineage)
     const ccbInstances = await getInstances();
 
-    // First, get list of attached sessions if needed
-    const attachedSessions = new Set();
-    if (onlyAttached) {
-      const sessionsResult = execSync('tmux list-sessions -F "#{session_name}\t#{session_attached}"', {
-        encoding: 'utf8',
-        timeout: 2000
-      });
-      for (const line of sessionsResult.split('\n')) {
-        if (!line) continue;
-        const [name, attached] = line.split('\t');
-        if (attached === '1') {
-          attachedSessions.add(name);
-        }
-      }
-    }
-
-    // Build a map: for each active CCB, find which session it's in
+    // Build a map: session name -> CCB instance info
+    // Use the tmuxPane info from getInstances() instead of re-detecting
     const sessionToCCB = {};
-
     for (const instance of ccbInstances) {
-      const projectName = path.basename(instance.workDir);
+      if (instance.tmuxPane && instance.tmuxPane.session) {
+        const sessionName = instance.tmuxPane.session;
+        const projectName = path.basename(instance.workDir);
 
-      // Get all panes and find the one with matching "Ready (project-name)" title
-      try {
-        const panesResult = execSync('tmux list-panes -a -F "#{session_name}\t#{pane_id}\t#{pane_title}"', {
-          encoding: 'utf8',
-          timeout: 2000
-        });
-
-        for (const line of panesResult.split('\n')) {
-          if (!line) continue;
-          const [sessionName, paneId, paneTitle] = line.split('\t');
-
-          // Match "Ready (project-name)" for this specific CCB instance
-          if (paneTitle && paneTitle.includes(`Ready (${projectName})`)) {
-            // If we're filtering by attached, only consider attached sessions
-            if (onlyAttached && !attachedSessions.has(sessionName)) {
-              continue;
-            }
-
-            sessionToCCB[sessionName] = {
-              pid: instance.pid,
-              status: instance.status,
-              project: projectName,
-              workDir: instance.workDir
-            };
-            break; // Found the session for this daemon
-          }
+        // Only include if session is attached (when filtering)
+        if (!onlyAttached || instance.tmuxPane.sessionAttached) {
+          sessionToCCB[sessionName] = {
+            pid: instance.pid,
+            status: instance.status,
+            project: projectName,
+            workDir: instance.workDir
+          };
         }
-      } catch (e) {
-        // Ignore errors in pane listing
       }
     }
 

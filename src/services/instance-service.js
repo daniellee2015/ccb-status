@@ -16,8 +16,7 @@ const {
   isAskdAlive,
   isCcbAlive,
   isPortListening,
-  hasDedicatedTmuxSession,
-  findTmuxPaneByWorkDir
+  findTmuxPaneByParentPid
 } = require('../utils/instance-checks');
 const { resolveStatus } = require('../utils/status-resolver');
 
@@ -224,7 +223,8 @@ async function getCCBInstances() {
         const ccbAlive = isCcbAlive(ccbProcess ? ccbProcess.pid : null);
         const portListening = await isPortListening(port, host);
         // Use parent PID for accurate tmux detection
-        const hasDedicatedTmux = hasDedicatedTmuxSession(parentPid);
+        const tmuxPaneInfo = findTmuxPaneByParentPid(parentPid);
+        const hasDedicatedTmux = tmuxPaneInfo !== null && tmuxPaneInfo.sessionAttached;
 
         // Delegate status determination to pure resolver
         const snapshot = {
@@ -250,7 +250,7 @@ async function getCCBInstances() {
           startedAt: data.started_at,
           parentPid: parentPid,
           managed: data.managed,
-          tmuxPane: hasDedicatedTmux ? { detected: true } : null,
+          tmuxPane: tmuxPaneInfo,  // Full tmux info: { session, paneId, sessionAttached, matchMode }
           llmStatus: getLLMStatus(workDir),
           uptime: getUptime(data.started_at)
         });
