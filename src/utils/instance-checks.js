@@ -374,6 +374,6 @@ module.exports = {
   // Work directory checks
   getProcessWorkDir,
   matchesWorkDir,
-  findTmuxPaneByWorkDir,
+  findTmuxPaneByParentPid,
   hasDedicatedTmuxSession
 };
