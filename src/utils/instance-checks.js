@@ -235,7 +235,7 @@ function getProcessTable() {
  */
 function listTmuxPanes() {
   try {
-    const format = '#{pane_id}\\t#{session_name}\\t#{session_attached}\\t#{pane_pid}\\t#{pane_tty}';
+    const format = '#{pane_id}\t#{session_name}\t#{session_attached}\t#{pane_pid}\t#{pane_tty}';
     const result = execSync(`tmux list-panes -a -F "${format}"`, {
       encoding: 'utf8',
       timeout: 2000
@@ -283,15 +283,25 @@ function locatePidInTmux(probePid, procMap, panes) {
     return { pane: paneByPid.get(probePid), mode: 'pane_pid_exact' };
   }
 
-  // 2) Walk parent chain and try ancestor pane PID / tty match
+  // 2) Check probePid's TTY first
+  const probeProc = procMap.get(probePid);
+  if (probeProc) {
+    const probeTtyKey = normalizeTty(probeProc.tty);
+    if (probeTtyKey && probeTtyKey !== '?' && paneByTty.has(probeTtyKey)) {
+      return { pane: paneByTty.get(probeTtyKey), mode: 'tty_match' };
+    }
+  }
+
+  // 3) Walk parent chain and try ancestor pane PID / tty match
   let cur = probePid;
-  const seen = new Set();
+  const seen = new Set([probePid]); // Already checked probePid
 
   while (cur > 1 && !seen.has(cur)) {
-    seen.add(cur);
-
     const proc = procMap.get(cur);
-    if (!proc) break;
+    if (!proc || !proc.ppid || proc.ppid === cur) break;
+
+    cur = proc.ppid;
+    seen.add(cur);
 
     if (paneByPid.has(cur)) {
       return { pane: paneByPid.get(cur), mode: 'ancestor_pane_pid' };
@@ -301,9 +311,6 @@ function locatePidInTmux(probePid, procMap, panes) {
     if (ttyKey && ttyKey !== '?' && paneByTty.has(ttyKey)) {
       return { pane: paneByTty.get(ttyKey), mode: 'tty_match' };
     }
-
-    if (!proc.ppid || proc.ppid === cur) break;
-    cur = proc.ppid;
   }
 
   return null;
