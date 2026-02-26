@@ -187,49 +187,161 @@ function matchesWorkDir(pid, expectedWorkDir) {
 }
 
 /**
- * Find tmux pane by work directory
- * @param {string} workDir - Work directory path
- * @returns {Object|null} Pane info { session, paneId, title } or null
+ * Normalize TTY path
+ * @param {string} tty - TTY path
+ * @returns {string|null} Normalized TTY
  */
-function findTmuxPaneByWorkDir(workDir) {
+function normalizeTty(tty) {
+  if (!tty) return null;
+  return tty.replace(/^\/dev\//, '');
+}
+
+/**
+ * Get process table with PID, PPID, TTY
+ * @returns {Map<number, Object>} Map of PID to process info
+ */
+function getProcessTable() {
   try {
-    const result = execSync('tmux list-panes -a -F "#{session_name}\\\\t#{session_attached}\\\\t#{session_windows}\\\\t#{pane_id}\\\\t#{pane_current_path}\\\\t#{pane_title}"', {
+    const result = execSync('ps -Ao pid=,ppid=,tty=,command=', {
+      encoding: 'utf8',
+      timeout: 5000
+    });
+
+    const map = new Map();
+    for (const raw of result.split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+
+      const m = line.match(/^(\d+)\s+(\d+)\s+(\S+)\s*(.*)$/);
+      if (!m) continue;
+
+      const pid = Number(m[1]);
+      const ppid = Number(m[2]);
+      const tty = m[3];
+      const command = m[4] || '';
+
+      map.set(pid, { pid, ppid, tty, command });
+    }
+
+    return map;
+  } catch (e) {
+    return new Map();
+  }
+}
+
+/**
+ * List all tmux panes with metadata
+ * @returns {Array<Object>} Array of pane info
+ */
+function listTmuxPanes() {
+  try {
+    const format = '#{pane_id}\\t#{session_name}\\t#{session_attached}\\t#{pane_pid}\\t#{pane_tty}';
+    const result = execSync(`tmux list-panes -a -F "${format}"`, {
       encoding: 'utf8',
       timeout: 2000
     });
 
-    for (const line of result.split('\n')) {
-      if (!line) continue;
-      const parts = line.split('\\t');
-      if (parts.length >= 6) {
-        const sessionName = parts[0];
-        const sessionAttached = parts[1];
-        const sessionWindows = parseInt(parts[2]);
-        const paneId = parts[3];
-        const panePath = parts[4];
-        const paneTitle = parts[5];
+    return result
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => {
+        const [paneId, sessionName, attachedRaw, panePidRaw, paneTty] = line.split('\t');
+        return {
+          paneId,
+          sessionName,
+          sessionAttached: Number(attachedRaw) > 0,
+          panePid: Number(panePidRaw),
+          paneTty
+        };
+      })
+      .filter(p => p.paneId && p.sessionName && Number.isFinite(p.panePid));
+  } catch (e) {
+    return [];
+  }
+}
 
-        // Check if this pane matches the work directory
-        if (panePath === workDir) {
-          // Check if it's a CCB pane
-          const isCCBPane = paneTitle.includes('Ready') ||
-                           paneTitle.includes('CCB-') ||
-                           paneTitle.includes('OpenCode') ||
-                           paneTitle.includes('Gemini') ||
-                           paneTitle.includes('Codex');
+/**
+ * Locate PID in tmux by checking PID lineage and TTY
+ * @param {number} probePid - PID to locate
+ * @param {Map} procMap - Process table
+ * @param {Array} panes - Tmux panes
+ * @returns {Object|null} Match result with pane and mode
+ */
+function locatePidInTmux(probePid, procMap, panes) {
+  const paneByPid = new Map();
+  const paneByTty = new Map();
 
-          // Check if pane is in an attached session (no window count requirement)
-          if (isCCBPane && sessionAttached === '1') {
-            return {
-              session: sessionName,
-              paneId: paneId,
-              title: paneTitle
-            };
-          }
-        }
-      }
+  for (const p of panes) {
+    paneByPid.set(p.panePid, p);
+    const ttyKey = normalizeTty(p.paneTty);
+    if (ttyKey) paneByTty.set(ttyKey, p);
+  }
+
+  // 1) Exact pane root PID match
+  if (paneByPid.has(probePid)) {
+    return { pane: paneByPid.get(probePid), mode: 'pane_pid_exact' };
+  }
+
+  // 2) Walk parent chain and try ancestor pane PID / tty match
+  let cur = probePid;
+  const seen = new Set();
+
+  while (cur > 1 && !seen.has(cur)) {
+    seen.add(cur);
+
+    const proc = procMap.get(cur);
+    if (!proc) break;
+
+    if (paneByPid.has(cur)) {
+      return { pane: paneByPid.get(cur), mode: 'ancestor_pane_pid' };
     }
-    return null;
+
+    const ttyKey = normalizeTty(proc.tty);
+    if (ttyKey && ttyKey !== '?' && paneByTty.has(ttyKey)) {
+      return { pane: paneByTty.get(ttyKey), mode: 'tty_match' };
+    }
+
+    if (!proc.ppid || proc.ppid === cur) break;
+    cur = proc.ppid;
+  }
+
+  return null;
+}
+
+/**
+ * Find tmux pane by parent PID (shell that started CCB)
+ * Uses PID lineage matching, not path/title matching
+ * @param {number} parentPid - Parent PID from askd.json
+ * @returns {Object|null} Pane info { session, paneId, sessionAttached } or null
+ */
+function findTmuxPaneByParentPid(parentPid) {
+  try {
+    if (!Number.isFinite(parentPid) || parentPid <= 0) {
+      return null;
+    }
+
+    const panes = listTmuxPanes();
+    if (panes.length === 0) {
+      return null;
+    }
+
+    const procMap = getProcessTable();
+    if (!procMap.has(parentPid)) {
+      return null;
+    }
+
+    const match = locatePidInTmux(parentPid, procMap, panes);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      session: match.pane.sessionName,
+      paneId: match.pane.paneId,
+      sessionAttached: match.pane.sessionAttached,
+      matchMode: match.mode
+    };
   } catch (e) {
     return null;
   }
@@ -237,12 +349,13 @@ function findTmuxPaneByWorkDir(workDir) {
 
 /**
  * Check if instance has tmux pane in attached session
- * @param {string} workDir - Instance work directory
+ * Uses parent PID from askd.json for accurate detection
+ * @param {number} parentPid - Parent PID from askd.json
  * @returns {boolean} True if has tmux pane in attached session
  */
-function hasDedicatedTmuxSession(workDir) {
-  const pane = findTmuxPaneByWorkDir(workDir);
-  return pane !== null;
+function hasDedicatedTmuxSession(parentPid) {
+  const pane = findTmuxPaneByParentPid(parentPid);
+  return pane !== null && pane.sessionAttached;
 }
 
 module.exports = {

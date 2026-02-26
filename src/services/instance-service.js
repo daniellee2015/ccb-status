@@ -194,57 +194,7 @@ async function getCCBInstances() {
   // Get all running CCB processes once (for performance)
   const ccbProcesses = getRunningCCBProcesses();
 
-  // Get all tmux panes once (for performance)
-  // Only consider panes where instance owns the session (session has only 1 window)
-  let tmuxPanesMap = new Map();
-  try {
-    // Get session info: session_name, windows_count
-    const sessionResult = execSync('tmux list-sessions -F "#{session_name}\\\\t#{session_attached}\\\\t#{session_windows}"', {
-      encoding: 'utf8',
-      timeout: 2000
-    });
-    const sessionInfo = new Map();
-    for (const line of sessionResult.split('\n')) {
-      if (!line) continue;
-      const parts = line.split('\\t');
-      if (parts.length >= 3) {
-        const sessionName = parts[0];
-        const attached = parts[1];
-        const windowsCount = parseInt(parts[2]);
-        sessionInfo.set(sessionName, { attached: attached === '1', windowsCount });
-      }
-    }
-
-    // Get pane info
-    const tmuxResult = execSync('tmux list-panes -a -F "#{session_name}\\\\t#{pane_id}\\\\t#{pane_current_path}\\\\t#{pane_title}"', {
-      encoding: 'utf8',
-      timeout: 2000
-    });
-    for (const line of tmuxResult.split('\n')) {
-      if (!line) continue;
-      const parts = line.split('\\t');
-      if (parts.length >= 4) {
-        const sessionName = parts[0];
-        const paneId = parts[1];
-        const panePath = parts[2];
-        const paneTitle = parts[3];
-
-        // Only include panes from attached sessions with CCB-related titles
-        const isCCBPane = paneTitle.includes('Ready') || paneTitle.includes('CCB-') || paneTitle.includes('OpenCode') || paneTitle.includes('Gemini') || paneTitle.includes('Codex');
-        const session = sessionInfo.get(sessionName);
-
-        // Active criteria: CCB pane exists in an attached session
-        // Note: We don't require windowsCount === 1 because users often work in sessions with multiple windows
-        if (isCCBPane && session && session.attached) {
-          tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle, session: sessionName, windowsCount: session.windowsCount });
-        }
-      }
-    }
-  } catch (e) {
-    // tmux not running or error
-  }
-
-  // Step 1: Scan state files (existing logic)
+  // Step 1: Scan state files
   if (fs.existsSync(cacheDir)) {
     const projectDirs = fs.readdirSync(cacheDir);
 
@@ -258,13 +208,13 @@ async function getCCBInstances() {
         const port = data.port || 0;
         const host = data.host || '127.0.0.1';
         const workDir = data.work_dir || projectDir;
+        const parentPid = data.parent_pid || null;
 
         processedWorkDirs.add(workDir);
 
         // Determine status based on both askd daemon and CCB process
         let status = 'dead';
         let isAlive = false;
-        const tmuxPane = tmuxPanesMap.get(workDir) || null;
 
         // Check if CCB process is actually running (not just askd daemon)
         const ccbProcess = ccbProcesses.find(p => p.workDir === workDir);
@@ -273,7 +223,8 @@ async function getCCBInstances() {
         const askdAlive = isAskdAlive(pid);
         const ccbAlive = isCcbAlive(ccbProcess ? ccbProcess.pid : null);
         const portListening = await isPortListening(port, host);
-        const hasDedicatedTmux = tmuxPane !== null;
+        // Use parent PID for accurate tmux detection
+        const hasDedicatedTmux = hasDedicatedTmuxSession(parentPid);
 
         // Delegate status determination to pure resolver
         const snapshot = {
@@ -297,9 +248,9 @@ async function getCCBInstances() {
           isAlive: isAlive,
           stateFile: stateFile,
           startedAt: data.started_at,
-          parentPid: data.parent_pid,
+          parentPid: parentPid,
           managed: data.managed,
-          tmuxPane: tmuxPane,
+          tmuxPane: hasDedicatedTmux ? { detected: true } : null,
           llmStatus: getLLMStatus(workDir),
           uptime: getUptime(data.started_at)
         });
@@ -319,7 +270,6 @@ async function getCCBInstances() {
     processedWorkDirs.add(proc.workDir);
 
     // This is a CCB process without state file - Disconnected state
-    const tmuxPane = tmuxPanesMap.get(proc.workDir) || null;
     const askdInfo = await checkAskdConnection(proc.workDir);
 
     instances.push({
@@ -336,7 +286,7 @@ async function getCCBInstances() {
       startedAt: null,
       parentPid: null,
       managed: false,
-      tmuxPane: tmuxPane,
+      tmuxPane: null,  // No parent PID available for disconnected instances
       llmStatus: getLLMStatus(proc.workDir),
       uptime: 'Unknown',
       askdConnected: askdInfo.connected
