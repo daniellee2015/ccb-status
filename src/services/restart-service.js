@@ -446,16 +446,19 @@ async function recoverDisconnected(instance) {
         timeout: 2000
       });
     } else {
-      // Pane doesn't exist, create new window
-      console.log(`  Tmux pane not found, creating new window`);
+      // Pane doesn't exist, create new dedicated session
+      console.log(`  Tmux pane not found, creating new dedicated session`);
       const windowName = `CCB-${projectName}`;
-      execSync(`tmux new-window -n "${windowName}"`, {
+      const sessionName = `CCB-${projectName}`;
+
+      // Create new detached session with single window
+      execSync(`tmux new-session -d -s "${sessionName}" -n "${windowName}"`, {
         encoding: 'utf8',
         timeout: 2000
       });
 
-      // Get the new pane ID
-      const newPaneId = execSync(`tmux display-message -p '#{pane_id}'`, {
+      // Get the pane ID from the new session
+      const newPaneId = execSync(`tmux list-panes -t "${sessionName}" -F '#{pane_id}'`, {
         encoding: 'utf8',
         timeout: 2000
       }).trim();
