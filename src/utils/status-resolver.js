@@ -12,8 +12,8 @@
  *
  * | Status       | askd | ccb  | port | tmux session |
  * |--------------|------|------|------|--------------|
- * | Active       | ✓    | ✓    | ✓    | ✓ (1 window) |
- * | Orphaned     | ✓    | ✓    | ✓    | ✗ or >1 win  |
+ * | Active       | ✓    | ✓    | ✓    | ✓ (attached) |
+ * | Orphaned     | ✓    | ✓    | ✓    | ✗ (no pane)  |
  * | Zombie       | ✓    | ✗    | ✓    | ?            |
  * | Disconnected | ✗    | ✓    | ✗    | ?            |
  * | Dead         | ✗    | ✗    | ✗    | ?            |
@@ -27,7 +27,7 @@
  * @param {boolean} snapshot.askdAlive - Is askd daemon alive
  * @param {boolean} snapshot.ccbAlive - Is ccb main process alive
  * @param {boolean} snapshot.portListening - Is port listening
- * @param {boolean} snapshot.hasDedicatedTmux - Has dedicated tmux session (attached, 1 window)
+ * @param {boolean} snapshot.hasDedicatedTmux - Has tmux pane in attached session
  * @returns {string} Status: 'active' | 'orphaned' | 'zombie' | 'disconnected' | 'dead'
  */
 function resolveStatus(snapshot) {
