@@ -96,6 +96,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               } else if (killAction.startsWith('2. Kill Zombie Instances')) {
                 const result = await showKillZombie();
                 if (result === 'completed') {
@@ -105,6 +106,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               } else if (killAction.startsWith('3. Kill Orphaned Instances')) {
                 const result = await showKillOrphaned();
                 if (result === 'completed') {
@@ -114,6 +116,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               } else if (killAction.startsWith('4. Kill All Instances')) {
                 const result = await showKillAll();
                 if (result === 'completed') {
@@ -123,6 +126,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               }
             }
             continue;
@@ -143,6 +147,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               } else if (cleanupAction.startsWith('2. Cleanup Zombie States')) {
                 const result = await showCleanupZombie();
                 if (result === 'completed') {
@@ -152,6 +157,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               } else if (cleanupAction.startsWith('3. Cleanup All States')) {
                 const result = await showCleanupAll();
                 if (result === 'completed') {
@@ -161,6 +167,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               }
             }
             continue;
@@ -181,6 +188,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               } else if (restartAction.startsWith('2. Restart Dead Instances')) {
                 const result = await showRestartDead();
                 if (result === 'completed') {
@@ -190,6 +198,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               } else if (restartAction.startsWith('3. Recover Disconnected Instances')) {
                 const result = await showRecoverDisconnected();
                 if (result === 'completed') {
@@ -199,6 +208,7 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               } else if (restartAction.startsWith('4. Recover Orphaned Instances')) {
                 const result = await showRecoverOrphaned();
                 if (result === 'completed') {
@@ -208,9 +218,11 @@ async function main() {
                   console.log('');
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
+                continue;
               } else if (restartAction.startsWith('5. Restart All Instances')) {
                 console.log('\n  🚧 Coming soon: Restart All Instances\n');
                 await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
               }
             }
             continue;
