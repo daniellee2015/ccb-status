@@ -78,10 +78,15 @@
  */
 
 /**
+ * @typedef {Object} TmuxMatchResult
+ * @property {TmuxPaneInfo} pane - Matched pane
+ * @property {string} mode - Match mode ('pane_pid_exact'|'ancestor_pane_pid'|'tty_match')
+ */
+
+/**
  * @typedef {Object} QueryConditions
  * @property {string[]} statuses - Filter by status
- * @property {boolean} hasT
-mux - Filter by tmux presence
+ * @property {boolean} hasTmux - Filter by tmux presence
  * @property {boolean} isAlive - Filter by alive status
  * @property {string[]} workDirs - Filter by work directories
  * @property {number[]} pids - Filter by PIDs

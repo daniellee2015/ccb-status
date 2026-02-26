@@ -5,11 +5,24 @@
 
 const { execSync } = require('child_process');
 
+// Cache for process table
+let cachedProcessTable = null;
+let cacheTime = 0;
+const DEFAULT_CACHE_TTL = 5000; // 5 seconds
+
 /**
- * Get complete process table
+ * Get complete process table with optional caching
+ * @param {number} ttl - Cache time-to-live in milliseconds (0 to disable cache)
  * @returns {Map<number, ProcessInfo>} Map of PID to process info
  */
-function getProcessTable() {
+function getProcessTable(ttl = DEFAULT_CACHE_TTL) {
+  const now = Date.now();
+
+  // Return cached result if still valid
+  if (ttl > 0 && cachedProcessTable && (now - cacheTime) < ttl) {
+    return cachedProcessTable;
+  }
+
   try {
     const result = execSync('ps -Ao pid=,ppid=,tty=,command=', {
       encoding: 'utf8',
@@ -32,10 +45,24 @@ function getProcessTable() {
       map.set(pid, { pid, ppid, tty, command });
     }
 
+    // Update cache
+    if (ttl > 0) {
+      cachedProcessTable = map;
+      cacheTime = now;
+    }
+
     return map;
   } catch (e) {
     return new Map();
   }
+}
+
+/**
+ * Clear process table cache
+ */
+function clearProcessCache() {
+  cachedProcessTable = null;
+  cacheTime = 0;
 }
 
 /**
@@ -125,6 +152,7 @@ function getProcessAncestry(pid) {
 
 module.exports = {
   getProcessTable,
+  clearProcessCache,
   isProcessAlive,
   getProcessInfo,
   getProcessWorkDir,
