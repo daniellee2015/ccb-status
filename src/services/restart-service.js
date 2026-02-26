@@ -509,22 +509,96 @@ async function recoverDisconnected(instance) {
 
 /**
  * Recover an orphaned instance
- * Orphaned = CCB process running but tmux session detached
- * Steps: Find or create tmux window -> attach to session
+ * Orphaned = CCB process running but no tmux pane
+ * Steps: Kill processes → Create new tmux session → Restart CCB
  * @param {object} instance - Instance object
  * @returns {object} - Result object {success, message}
  */
 
 async function recoverOrphaned(instance) {
-  // Orphaned instances cannot be truly "recovered" because they are running
-  // outside of a dedicated tmux session. The correct approach is to:
-  // 1. Kill the orphaned instance using "Kill Orphaned" menu
-  // 2. Restart it properly in a new tmux session
+  try {
+    const projectName = path.basename(instance.workDir);
 
-  return {
-    success: false,
-    message: 'Orphaned instances cannot be recovered. Please use "Kill Orphaned Instances" menu, then restart manually.'
-  };
+    // Step 1: Kill both askd and ccb processes
+    console.log(`  Killing orphaned processes...`);
+    const pidsToKill = [];
+    if (instance.askdPid) pidsToKill.push(instance.askdPid);
+    if (instance.ccbPid) pidsToKill.push(instance.ccbPid);
+
+    for (const pid of pidsToKill) {
+      try {
+        process.kill(pid, 'SIGTERM');
+        console.log(`  Sent SIGTERM to PID ${pid}`);
+      } catch (e) {
+        console.log(`  PID ${pid} already dead`);
+      }
+    }
+
+    // Wait for cleanup
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Step 2: Create new tmux session
+    const sessionName = `CCB-${projectName}`;
+    const windowName = `CCB-${projectName}`;
+
+    console.log(`  Creating new tmux session: ${sessionName}`);
+    try {
+      // Try to create new session
+      execSync(`tmux new-session -d -s "${sessionName}" -n "${windowName}"`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+    } catch (e) {
+      // Session might already exist, that's ok
+      console.log(`  Session ${sessionName} already exists, using it`);
+    }
+
+    // Get the pane ID
+    const paneId = execSync(`tmux list-panes -t "${sessionName}" -F '#{pane_id}'`, {
+      encoding: 'utf8',
+      timeout: 2000
+    }).trim().split('\n')[0]; // Get first pane
+
+    // Step 3: Change to work directory
+    console.log(`  Changing to work directory: ${instance.workDir}`);
+    execSync(`tmux send-keys -t ${paneId} "cd '${instance.workDir}'" Enter`, {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Step 4: Restart CCB with the same command
+    const command = getRestartCommand(instance);
+    console.log(`  Starting CCB: ${command}`);
+    execSync(`tmux send-keys -t ${paneId} "${command}" Enter`, {
+      encoding: 'utf8',
+      timeout: 2000
+    });
+
+    // Step 5: Verify recovery
+    console.log(`  Verifying recovery...`);
+    const result = await verifyRestartSuccess(instance.workDir, 10000);
+
+    if (result.success) {
+      console.log(`  ✓ Recovered successfully`);
+      console.log(`  To attach to session: tmux attach -t ${sessionName}`);
+      return {
+        success: true,
+        message: `Recovered successfully. Attach with: tmux attach -t ${sessionName}`
+      };
+    } else {
+      return {
+        success: false,
+        message: `Recovery started but verification failed: ${result.message}`
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: `Recovery failed: ${error.message}`
+    };
+  }
 }
 
 module.exports = {

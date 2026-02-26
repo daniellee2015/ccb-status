@@ -173,7 +173,7 @@ module.exports = {
     recoverDisconnected: 'Recover Disconnected Instances',
     recoverDisconnectedHint: '恢复状态文件丢失的实例',
     recoverOrphaned: 'Recover Orphaned Instances',
-    recoverOrphanedHint: '重新连接到后台运行的实例',
+    recoverOrphanedHint: 'Kill 后台进程并在新 tmux 中重启',
     restartAll: 'Restart All Instances',
     restartAllHint: '重启所有实例',
 

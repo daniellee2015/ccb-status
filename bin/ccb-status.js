@@ -209,7 +209,17 @@ async function main() {
                   await new Promise(resolve => setTimeout(resolve, 500));
                 }
                 continue;
-              } else if (restartAction.startsWith('4. Restart All Instances')) {
+              } else if (restartAction.startsWith('4. Recover Orphaned Instances')) {
+                const result = await showRecoverOrphaned();
+                if (result === 'completed') {
+                  startSpinner('Re-detecting status...');
+                  detectionResult = await detectStatus();
+                  stopSpinner('Detection complete');
+                  console.log('');
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                continue;
+              } else if (restartAction.startsWith('5. Restart All Instances')) {
                 console.log('\n  🚧 Coming soon: Restart All Instances\n');
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 continue;

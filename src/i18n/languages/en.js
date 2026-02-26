@@ -173,7 +173,7 @@ module.exports = {
     recoverDisconnected: 'Recover Disconnected Instances',
     recoverDisconnectedHint: 'Recover instances with missing state files',
     recoverOrphaned: 'Recover Orphaned Instances',
-    recoverOrphanedHint: 'Reconnect to background running instances',
+    recoverOrphanedHint: 'Kill background processes and restart in new tmux',
     restartAll: 'Restart All Instances',
     restartAllHint: 'Restart all instances',
 
