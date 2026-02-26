@@ -233,9 +233,10 @@ async function getCCBInstances() {
         const isCCBPane = paneTitle.includes('Ready') || paneTitle.includes('CCB-') || paneTitle.includes('OpenCode') || paneTitle.includes('Gemini') || paneTitle.includes('Codex');
         const session = sessionInfo.get(sessionName);
 
-        // Active criteria: session is attached AND has only 1 window (instance owns the session)
-        if (isCCBPane && session && session.attached && session.windowsCount === 1) {
-          tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle, session: sessionName });
+        // Active criteria: CCB pane exists in an attached session
+        // Note: We don't require windowsCount === 1 because users often work in sessions with multiple windows
+        if (isCCBPane && session && session.attached) {
+          tmuxPanesMap.set(panePath, { id: paneId, title: paneTitle, session: sessionName, windowsCount: session.windowsCount });
         }
       }
     }
