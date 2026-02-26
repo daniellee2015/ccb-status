@@ -244,8 +244,6 @@ function hasDedicatedTmuxSession(workDir) {
   const pane = findTmuxPaneByWorkDir(workDir);
   return pane !== null;
 }
-  return pane !== null;
-}
 
 module.exports = {
   // Basic checks
