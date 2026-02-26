@@ -207,7 +207,7 @@ async function getCCBInstances() {
         const port = data.port || 0;
         const host = data.host || '127.0.0.1';
         const workDir = data.work_dir || projectDir;
-        const parentPid = data.parent_pid || null;
+        const parentPid = Number(data.parent_pid) || null; // Normalize to number
 
         processedWorkDirs.add(workDir);
 

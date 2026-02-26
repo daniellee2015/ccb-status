@@ -110,14 +110,15 @@ function locatePidInTmux(probePid, procMap, panes) {
 
   // 3) Walk parent chain and try ancestor pane PID / tty match
   let cur = probePid;
-  const seen = new Set([probePid]);
+  const seen = new Set(); // Start with empty set - probePid already checked above
 
   while (cur > 1 && !seen.has(cur)) {
+    seen.add(cur);
+
     const proc = procMap.get(cur);
     if (!proc || !proc.ppid || proc.ppid === cur) break;
 
     cur = proc.ppid;
-    seen.add(cur);
 
     if (paneByPid.has(cur)) {
       return { pane: paneByPid.get(cur), mode: 'ancestor_pane_pid' };

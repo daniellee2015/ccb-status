@@ -12,7 +12,8 @@ const { getProcessWorkDir, isProcessAlive } = require('./process-detector');
  */
 function findAllCCBProcesses() {
   try {
-    const result = execSync('ps aux | grep "[c]cb" | grep -v grep', {
+    // Use ps -Ao for correct PPID parsing
+    const result = execSync('ps -Ao pid=,ppid=,command= | grep "[c]cb"', {
       encoding: 'utf8',
       timeout: 2000
     });
@@ -21,15 +22,15 @@ function findAllCCBProcesses() {
     for (const line of result.split('\n')) {
       if (!line.trim()) continue;
 
-      const parts = line.trim().split(/\s+/);
-      if (parts.length < 11) continue;
+      const match = line.trim().match(/^(\d+)\s+(\d+)\s+(.+)$/);
+      if (!match) continue;
 
-      const pid = parseInt(parts[1]);
-      const ppid = parseInt(parts[2]) || null;
-      const command = parts.slice(10).join(' ');
+      const pid = parseInt(match[1]);
+      const ppid = parseInt(match[2]);
+      const command = match[3];
 
-      // Only include actual CCB commands
-      if (!command.includes('/ccb') && !command.includes('ccb ')) continue;
+      // Only include actual CCB commands (not ccb-status, ccb-ping, etc.)
+      if (!command.match(/\/ccb\s+/) && !command.match(/\/ccb$/)) continue;
 
       const workDir = getProcessWorkDir(pid);
       if (!workDir) continue;

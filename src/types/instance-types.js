@@ -9,13 +9,12 @@
  * @property {number} ppid - Parent Process ID
  * @property {string} tty - Terminal device
  * @property {string} command - Command line
- * @property {string} workDir - Working directory
  */
 
 /**
  * @typedef {Object} TmuxPaneInfo
  * @property {string} paneId - Tmux pane ID (e.g., '%180')
- * @property {string} sessionName - Tmux session name
+ * @property {string} session - Tmux session name
  * @property {boolean} sessionAttached - Whether session is attached
  * @property {number} panePid - Root process PID of the pane
  * @property {string} paneTty - TTY of the pane
@@ -40,6 +39,7 @@
  * @property {number} parentPid - Parent process ID
  * @property {string} workDir - Working directory
  * @property {string[]} providers - LLM providers (e.g., ['claude', 'gemini'])
+ * @property {string} command - Full command line
  */
 
 /**
