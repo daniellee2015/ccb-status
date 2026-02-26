@@ -457,6 +457,9 @@ async function recoverDisconnected(instance) {
         timeout: 2000
       });
 
+      console.log(`  Created new session: ${sessionName}`);
+      console.log(`  To attach to this session, run: tmux attach -t ${sessionName}`);
+
       // Get the pane ID from the new session
       const newPaneId = execSync(`tmux list-panes -t "${sessionName}" -F '#{pane_id}'`, {
         encoding: 'utf8',

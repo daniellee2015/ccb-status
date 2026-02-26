@@ -218,7 +218,8 @@ function findTmuxPaneByWorkDir(workDir) {
                            paneTitle.includes('Gemini') ||
                            paneTitle.includes('Codex');
 
-          if (isCCBPane && sessionAttached === '1' && sessionWindows === 1) {
+          // Check if pane is in an attached session (no window count requirement)
+          if (isCCBPane && sessionAttached === '1') {
             return {
               session: sessionName,
               paneId: paneId,
@@ -235,13 +236,14 @@ function findTmuxPaneByWorkDir(workDir) {
 }
 
 /**
- * Check if instance has dedicated tmux session
- * Dedicated = attached session with only 1 window
+ * Check if instance has tmux pane in attached session
  * @param {string} workDir - Instance work directory
- * @returns {boolean} True if has dedicated tmux session
+ * @returns {boolean} True if has tmux pane in attached session
  */
 function hasDedicatedTmuxSession(workDir) {
   const pane = findTmuxPaneByWorkDir(workDir);
+  return pane !== null;
+}
   return pane !== null;
 }
 
