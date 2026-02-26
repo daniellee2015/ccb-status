@@ -1,0 +1,133 @@
+/**
+ * Process Detector
+ * Centralized process detection and information gathering
+ */
+
+const { execSync } = require('child_process');
+
+/**
+ * Get complete process table
+ * @returns {Map<number, ProcessInfo>} Map of PID to process info
+ */
+function getProcessTable() {
+  try {
+    const result = execSync('ps -Ao pid=,ppid=,tty=,command=', {
+      encoding: 'utf8',
+      timeout: 5000
+    });
+
+    const map = new Map();
+    for (const raw of result.split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+
+      const m = line.match(/^(\d+)\s+(\d+)\s+(\S+)\s*(.*)$/);
+      if (!m) continue;
+
+      const pid = Number(m[1]);
+      const ppid = Number(m[2]);
+      const tty = m[3];
+      const command = m[4] || '';
+
+      map.set(pid, { pid, ppid, tty, command });
+    }
+
+    return map;
+  } catch (e) {
+    return new Map();
+  }
+}
+
+/**
+ * Check if process is alive
+ * @param {number} pid - Process ID
+ * @returns {boolean}
+ */
+function isProcessAlive(pid) {
+  if (!pid || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Get process info by PID
+ * @param {number} pid - Process ID
+ * @returns {ProcessInfo|null}
+ */
+function getProcessInfo(pid) {
+  const procTable = getProcessTable();
+  return procTable.get(pid) || null;
+}
+
+/**
+ * Get process work directory
+ * @param {number} pid - Process ID
+ * @returns {string|null}
+ */
+function getProcessWorkDir(pid) {
+  if (!pid || pid <= 0) return null;
+  try {
+    const result = execSync(`lsof -p ${pid} | grep cwd`, {
+      encoding: 'utf8',
+      timeout: 1000
+    });
+    const match = result.match(/\s+(\/.+)$/);
+    return match ? match[1].trim() : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Find processes by command pattern
+ * @param {string} pattern - Command pattern to match
+ * @returns {ProcessInfo[]}
+ */
+function findProcessesByCommand(pattern) {
+  const procTable = getProcessTable();
+  const results = [];
+
+  for (const proc of procTable.values()) {
+    if (proc.command.includes(pattern)) {
+      results.push(proc);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Get process ancestry chain
+ * @param {number} pid - Process ID
+ * @returns {ProcessInfo[]} Array of ancestors from child to root
+ */
+function getProcessAncestry(pid) {
+  const procTable = getProcessTable();
+  const ancestry = [];
+  let current = pid;
+  const seen = new Set();
+
+  while (current > 1 && !seen.has(current)) {
+    seen.add(current);
+    const proc = procTable.get(current);
+    if (!proc) break;
+
+    ancestry.push(proc);
+    current = proc.ppid;
+  }
+
+  return ancestry;
+}
+
+module.exports = {
+  getProcessTable,
+  isProcessAlive,
+  getProcessInfo,
+  getProcessWorkDir,
+  findProcessesByCommand,
+  getProcessAncestry
+};
