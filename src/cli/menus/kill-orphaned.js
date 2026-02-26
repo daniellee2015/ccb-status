@@ -84,14 +84,25 @@ async function showKillOrphaned() {
   for (const instance of selectedInstances) {
     const projectName = path.basename(instance.workDir);
     try {
-      // Kill askd daemon for graceful shutdown
-      const pidToKill = instance.askdPid || instance.pid;
-      if (pidToKill) {
-        const result = await safeKillProcess(pidToKill, instance.workDir);
+      // For orphaned instances, kill both askd and ccb
+      // Orphaned = both running but no dedicated tmux
+      const pidsToKill = [];
+      if (instance.askdPid) pidsToKill.push(instance.askdPid);
+      if (instance.ccbPid) pidsToKill.push(instance.ccbPid);
+
+      if (pidsToKill.length === 0) {
+        console.log(`  \x1b[33m⚠\x1b[0m ${projectName} - No PIDs found`);
+        continue;
+      }
+
+      let allSuccess = true;
+      for (const pid of pidsToKill) {
+        const result = await safeKillProcess(pid, instance.workDir);
         if (result.success) {
-          console.log(`  \x1b[32m✓\x1b[0m ${projectName} - ${tc('killOrphaned.killed', { pid: pidToKill })}`);
+          console.log(`  \x1b[32m✓\x1b[0m ${projectName} - ${tc('killOrphaned.killed', { pid: pid })}`);
         } else {
           console.log(`  \x1b[31m✗\x1b[0m ${projectName} - ${tc('killOrphaned.failed', { error: result.error })}`);
+          allSuccess = false;
         }
       }
     } catch (e) {

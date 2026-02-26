@@ -453,7 +453,8 @@ module.exports = {
       hash: '哈希',
       type: '类型',
       pid: 'PID',
-      port: '端口'
+      port: '端口',
+      status: '状态'
     }
   },
 

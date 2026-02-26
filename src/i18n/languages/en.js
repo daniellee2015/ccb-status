@@ -453,7 +453,8 @@ module.exports = {
       hash: 'Hash',
       type: 'Type',
       pid: 'PID',
-      port: 'Port'
+      port: 'Port',
+      status: 'Status'
     }
   },
 
