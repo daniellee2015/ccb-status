@@ -15,8 +15,7 @@ const { getRunningCCBProcesses } = require('../utils/process-detector');
 const {
   isAskdAlive,
   isCcbAlive,
-  isPortListening,
-  findTmuxPaneByParentPid
+  isPortListening
 } = require('../utils/instance-checks');
 const { resolveStatus } = require('../utils/status-resolver');
 
@@ -193,6 +192,10 @@ async function getCCBInstances() {
   // Get all running CCB processes once (for performance)
   const ccbProcesses = getRunningCCBProcesses();
 
+  // Get all tmux panes once (for performance) - avoid repeated calls
+  const { listTmuxPanes, locatePidInTmux } = require('../detectors/tmux-detector');
+  const allTmuxPanes = listTmuxPanes();
+
   // Step 1: Scan state files
   if (fs.existsSync(cacheDir)) {
     const projectDirs = fs.readdirSync(cacheDir);
@@ -222,8 +225,22 @@ async function getCCBInstances() {
         const askdAlive = isAskdAlive(pid);
         const ccbAlive = isCcbAlive(ccbProcess ? ccbProcess.pid : null);
         const portListening = await isPortListening(port, host);
-        // Use parent PID for accurate tmux detection
-        const tmuxPaneInfo = findTmuxPaneByParentPid(parentPid);
+
+        // Use parent PID for accurate tmux detection (reuse panes list)
+        let tmuxPaneInfo = null;
+        if (parentPid && allTmuxPanes.length > 0) {
+          const match = locatePidInTmux(parentPid, allTmuxPanes);
+          if (match) {
+            tmuxPaneInfo = {
+              paneId: match.pane.paneId,
+              session: match.pane.sessionName,
+              sessionAttached: match.pane.sessionAttached,
+              panePid: match.pane.panePid,
+              paneTty: match.pane.paneTty,
+              matchMode: match.mode
+            };
+          }
+        }
         const hasDedicatedTmux = tmuxPaneInfo !== null && tmuxPaneInfo.sessionAttached;
 
         // Delegate status determination to pure resolver
