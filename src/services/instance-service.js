@@ -18,6 +18,7 @@ const {
   isPortListening
 } = require('../utils/instance-checks');
 const { resolveStatus } = require('../utils/status-resolver');
+const { getCachedInstances, setCachedInstances } = require('../cache/file-cache');
 
 /**
  * Get tmux pane ID for work directory
@@ -185,6 +186,27 @@ async function checkAskdConnection(workDir) {
  * Get all CCB instances (from state files + running processes)
  */
 async function getCCBInstances() {
+  // Try cache first (target: < 5ms)
+  const cached = getCachedInstances();
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Cache miss: perform full scan
+  const instances = await getCCBInstancesUncached();
+
+  // Update cache for next call
+  setCachedInstances(instances);
+
+  return instances;
+}
+
+/**
+ * Get CCB instances without cache (internal function)
+ * This is the original logic, now wrapped by getCCBInstances with caching
+ * Optimized with parallel port checks for better performance
+ */
+async function getCCBInstancesUncached() {
   const cacheDir = path.join(os.homedir(), '.cache', 'ccb', 'projects');
   const instances = [];
   const processedWorkDirs = new Set();
@@ -195,6 +217,9 @@ async function getCCBInstances() {
   // Get all tmux panes once (for performance) - avoid repeated calls
   const { listTmuxPanes, locatePidInTmux } = require('../detectors/tmux-detector');
   const allTmuxPanes = listTmuxPanes();
+
+  // Collect all instance data first (without async port checks)
+  const instanceDataList = [];
 
   // Step 1: Scan state files
   if (fs.existsSync(cacheDir)) {
@@ -210,23 +235,18 @@ async function getCCBInstances() {
         const port = data.port || 0;
         const host = data.host || '127.0.0.1';
         const workDir = data.work_dir || projectDir;
-        const parentPid = Number(data.parent_pid) || null; // Normalize to number
+        const parentPid = Number(data.parent_pid) || null;
 
         processedWorkDirs.add(workDir);
 
-        // Determine status based on both askd daemon and CCB process
-        let status = 'dead';
-        let isAlive = false;
-
-        // Check if CCB process is actually running (not just askd daemon)
+        // Check if CCB process is actually running
         const ccbProcess = ccbProcesses.find(p => p.workDir === workDir);
 
-        // Collect component states (snapshot)
+        // Collect component states (snapshot) - sync checks only
         const askdAlive = isAskdAlive(pid);
         const ccbAlive = isCcbAlive(ccbProcess ? ccbProcess.pid : null);
-        const portListening = await isPortListening(port, host);
 
-        // Use parent PID for accurate tmux detection (reuse panes list)
+        // Use parent PID for accurate tmux detection
         let tmuxPaneInfo = null;
         if (parentPid && allTmuxPanes.length > 0) {
           const match = locatePidInTmux(parentPid, allTmuxPanes);
@@ -241,35 +261,18 @@ async function getCCBInstances() {
             };
           }
         }
-        const hasDedicatedTmux = tmuxPaneInfo !== null && tmuxPaneInfo.sessionAttached;
 
-        // Delegate status determination to pure resolver
-        const snapshot = {
+        instanceDataList.push({
+          workDir,
+          pid,
+          port,
+          host,
           askdAlive,
           ccbAlive,
-          portListening,
-          hasDedicatedTmux
-        };
-        status = resolveStatus(snapshot);
-        isAlive = (status === 'active');
-
-        instances.push({
-          workDir: workDir,
-          // PID semantics: displayPid for UI, askdPid/ccbPid for operations
-          pid: ccbProcess ? ccbProcess.pid : pid,  // Display PID (prefer CCB for user visibility)
-          askdPid: pid,  // askd daemon PID (for daemon control)
-          ccbPid: ccbProcess ? ccbProcess.pid : null,  // CCB process PID (for process control)
-          port: port,
-          host: host,
-          status: status,
-          isAlive: isAlive,
-          stateFile: stateFile,
-          startedAt: data.started_at,
-          parentPid: parentPid,
-          managed: data.managed,
-          tmuxPane: tmuxPaneInfo,  // Full tmux info: { session, paneId, sessionAttached, matchMode }
-          llmStatus: getLLMStatus(workDir),
-          uptime: getUptime(data.started_at)
+          ccbProcess,
+          tmuxPaneInfo,
+          stateFile,
+          data
         });
       } catch (e) {
         // Skip invalid state files
@@ -277,33 +280,70 @@ async function getCCBInstances() {
     }
   }
 
-  // Step 2: Scan running CCB processes (new logic)
-  // Use the ccbProcesses already fetched above
+  // Step 2: Parallel port checks for all instances
+  const portCheckPromises = instanceDataList.map(inst =>
+    isPortListening(inst.port, inst.host)
+  );
+  const portResults = await Promise.all(portCheckPromises);
 
+  // Step 3: Assemble instances with port check results
+  for (let i = 0; i < instanceDataList.length; i++) {
+    const inst = instanceDataList[i];
+    const portListening = portResults[i];
+
+    const hasDedicatedTmux = inst.tmuxPaneInfo !== null && inst.tmuxPaneInfo.sessionAttached;
+
+    // Delegate status determination to pure resolver
+    const snapshot = {
+      askdAlive: inst.askdAlive,
+      ccbAlive: inst.ccbAlive,
+      portListening,
+      hasDedicatedTmux
+    };
+    const status = resolveStatus(snapshot);
+    const isAlive = (status === 'active');
+
+    instances.push({
+      workDir: inst.workDir,
+      pid: inst.ccbProcess ? inst.ccbProcess.pid : inst.pid,
+      askdPid: inst.pid,
+      ccbPid: inst.ccbProcess ? inst.ccbProcess.pid : null,
+      port: inst.port,
+      host: inst.host,
+      status,
+      isAlive,
+      stateFile: inst.stateFile,
+      startedAt: inst.data.started_at,
+      parentPid: inst.data.parent_pid,
+      managed: inst.data.managed,
+      tmuxPane: inst.tmuxPaneInfo,
+      llmStatus: getLLMStatus(inst.workDir),
+      uptime: getUptime(inst.data.started_at)
+    });
+  }
+
+  // Step 4: Scan running CCB processes (disconnected instances)
   for (const proc of ccbProcesses) {
-    // Skip if already processed from state file
     if (processedWorkDirs.has(proc.workDir)) continue;
 
     processedWorkDirs.add(proc.workDir);
 
-    // This is a CCB process without state file - Disconnected state
     const askdInfo = await checkAskdConnection(proc.workDir);
 
     instances.push({
       workDir: proc.workDir,
-      // For disconnected: CCB process exists but no state file
-      pid: proc.pid,  // Display PID (CCB process)
-      askdPid: askdInfo.pid || null,  // askd PID if found
-      ccbPid: proc.pid,  // CCB process PID
+      pid: proc.pid,
+      askdPid: askdInfo.pid || null,
+      ccbPid: proc.pid,
       port: askdInfo.port || 0,
       host: '127.0.0.1',
-      status: 'disconnected',  // New status!
-      isAlive: false,  // Not fully functional
-      stateFile: null,  // No state file
+      status: 'disconnected',
+      isAlive: false,
+      stateFile: null,
       startedAt: null,
       parentPid: null,
       managed: false,
-      tmuxPane: null,  // No parent PID available for disconnected instances
+      tmuxPane: null,
       llmStatus: getLLMStatus(proc.workDir),
       uptime: 'Unknown',
       askdConnected: askdInfo.connected
