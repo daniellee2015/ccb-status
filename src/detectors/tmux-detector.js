@@ -4,7 +4,7 @@
  */
 
 const { execSync } = require('child_process');
-const { getProcessTable } = require('./process-detector');
+const { getProcessAncestryFast, getProcessInfoFast } = require('../utils/process-utils-fast');
 
 /**
  * Normalize TTY path
@@ -79,12 +79,12 @@ function listTmuxSessions() {
 
 /**
  * Locate PID in tmux by checking PID lineage and TTY
+ * Optimized version - uses fast ancestry lookup instead of full process table
  * @param {number} probePid - PID to locate
- * @param {Map} procMap - Process table
  * @param {TmuxPaneInfo[]} panes - Tmux panes
  * @returns {Object|null} Match result with pane and mode
  */
-function locatePidInTmux(probePid, procMap, panes) {
+function locatePidInTmux(probePid, panes) {
   const paneByPid = new Map();
   const paneByTty = new Map();
 
@@ -100,7 +100,7 @@ function locatePidInTmux(probePid, procMap, panes) {
   }
 
   // 2) Check probePid's TTY first
-  const probeProc = procMap.get(probePid);
+  const probeProc = getProcessInfoFast(probePid);
   if (probeProc) {
     const probeTtyKey = normalizeTty(probeProc.tty);
     if (probeTtyKey && probeTtyKey !== '?' && paneByTty.has(probeTtyKey)) {
@@ -108,20 +108,12 @@ function locatePidInTmux(probePid, procMap, panes) {
     }
   }
 
-  // 3) Walk parent chain and try ancestor pane PID / tty match
-  let cur = probePid;
-  const seen = new Set(); // Start with empty set - probePid already checked above
+  // 3) Walk parent chain using fast ancestry lookup
+  const ancestry = getProcessAncestryFast(probePid);
 
-  while (cur > 1 && !seen.has(cur)) {
-    seen.add(cur);
-
-    const proc = procMap.get(cur);
-    if (!proc || !proc.ppid || proc.ppid === cur) break;
-
-    cur = proc.ppid;
-
-    if (paneByPid.has(cur)) {
-      return { pane: paneByPid.get(cur), mode: 'ancestor_pane_pid' };
+  for (const proc of ancestry) {
+    if (paneByPid.has(proc.pid)) {
+      return { pane: paneByPid.get(proc.pid), mode: 'ancestor_pane_pid' };
     }
 
     const ttyKey = normalizeTty(proc.tty);
@@ -136,6 +128,7 @@ function locatePidInTmux(probePid, procMap, panes) {
 /**
  * Find tmux pane by parent PID (shell that started process)
  * Uses PID lineage matching, not path/title matching
+ * Optimized version - no full process table scan
  * @param {number} parentPid - Parent PID
  * @returns {TmuxPaneInfo|null}
  */
@@ -150,12 +143,7 @@ function findTmuxPaneByParentPid(parentPid) {
       return null;
     }
 
-    const procMap = getProcessTable();
-    if (!procMap.has(parentPid)) {
-      return null;
-    }
-
-    const match = locatePidInTmux(parentPid, procMap, panes);
+    const match = locatePidInTmux(parentPid, panes);
     if (!match) {
       return null;
     }

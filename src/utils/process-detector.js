@@ -16,10 +16,49 @@ function getRunningCCBProcesses() {
     // Filter by exact path to avoid false matches
     const result = execSync('ps aux | awk \'$11 ~ /Python/ && $12 ~ /\\.local\\/bin\\/ccb$/ {print $2}\'', {
       encoding: 'utf8',
-      timeout: 5000  // Increased timeout for systems with many processes
+      timeout: 5000
     });
 
     const ccbPids = [];
+    for (const line of result.split('\\n')) {
+      if (!line) continue;
+      const pid = parseInt(line.trim());
+      if (pid) ccbPids.push(pid);
+    }
+
+    if (ccbPids.length === 0) return [];
+
+    // Step 2: Get work directories for each CCB PID using pwdx (much faster than lsof)
+    const processes = [];
+
+    // Try to get all work dirs in one command (much faster)
+    try {
+      const pwdxResult = execSync(`pwdx ${ccbPids.join(' ')} 2>/dev/null`, {
+        encoding: 'utf8',
+        timeout: 2000
+      });
+
+      for (const line of pwdxResult.split('\n')) {
+        if (!line) continue;
+        const match = line.match(/^(\d+):\s+(.+)$/);
+        if (match) {
+          const pid = parseInt(match[1]);
+          const workDir = match[2].trim();
+          processes.push({ pid, workDir });
+        }
+      }
+    } catch (e) {
+      // Fallback to lsof if pwdx not available (slower)
+      for (const pid of ccbPids) {
+        try {
+          const lsofResult = execSync(`lsof -a -d cwd -p ${pid} 2>/dev/null`, {
+            encoding: 'utf8',
+            timeout: 1000
+          });
+
+          for (const line of lsofResult.split('\n')) {
+            if (!line || !line.includes('cwd')) continue;
+            const parts = line.trim().split(/\s+/);
     for (const line of result.split('\n')) {
       if (!line) continue;
       const pid = parseInt(line.trim());

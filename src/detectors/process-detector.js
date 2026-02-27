@@ -24,9 +24,10 @@ function getProcessTable(ttl = DEFAULT_CACHE_TTL) {
   }
 
   try {
-    const result = execSync('ps -Ao pid=,ppid=,tty=,command=', {
+    // Use -o with specific fields for faster execution
+    const result = execSync('ps -Ao pid=,ppid=,tty=,comm=', {
       encoding: 'utf8',
-      timeout: 5000
+      timeout: 3000
     });
 
     const map = new Map();
@@ -34,13 +35,13 @@ function getProcessTable(ttl = DEFAULT_CACHE_TTL) {
       const line = raw.trim();
       if (!line) continue;
 
-      const m = line.match(/^(\d+)\s+(\d+)\s+(\S+)\s*(.*)$/);
-      if (!m) continue;
+      const parts = line.split(/\s+/);
+      if (parts.length < 4) continue;
 
-      const pid = Number(m[1]);
-      const ppid = Number(m[2]);
-      const tty = m[3];
-      const command = m[4] || '';
+      const pid = Number(parts[0]);
+      const ppid = Number(parts[1]);
+      const tty = parts[2];
+      const command = parts.slice(3).join(' ');
 
       map.set(pid, { pid, ppid, tty, command });
     }
