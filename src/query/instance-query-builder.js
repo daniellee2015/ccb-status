@@ -3,7 +3,7 @@
  * Provides fluent API for querying and filtering CCB instances
  */
 
-const { getInstances } = require('../utils/instance-query');
+const { getCachedInstances } = require('../cache/instance-cache');
 
 class InstanceQueryBuilder {
   constructor() {
@@ -79,10 +79,11 @@ class InstanceQueryBuilder {
 
   /**
    * Execute query and return filtered instances
+   * @param {boolean} forceRefresh - Force refresh cache
    * @returns {Promise<CCBInstance[]>}
    */
-  async execute() {
-    const instances = await getInstances();
+  async execute(forceRefresh = false) {
+    const instances = await getCachedInstances(forceRefresh);
     return this._applyFilters(instances);
   }
 
